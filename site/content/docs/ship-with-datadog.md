@@ -1,6 +1,6 @@
 ---
 title: Ship with Datadog Agent
-weight: 8
+weight: 9
 ---
 
 {{< callout type="warning" >}}

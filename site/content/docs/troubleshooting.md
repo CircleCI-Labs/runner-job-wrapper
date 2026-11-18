@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-weight: 11
+weight: 12
 ---
 
 The wrapper never fails a job over logging, so a problem usually shows up as missing data, not as an error. Turn on diagnostics first: set `CCI_JOBLOG_DEBUG=1` in the runner service environment, restart the runner, and read the runner's journal.

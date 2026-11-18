@@ -1,11 +1,11 @@
 ---
 title: Event schema
-weight: 3
+weight: 4
 ---
 
 The wrapper writes one JSON object per line (schema version 1), UTF-8. Each line is written with a single append and stays well under 4 KiB, so concurrent appends from many runner agents do not interleave.
 
-All identifiers are strings, and a missing value is `""`, so every line has the same keys. `job_end` additionally has `agent_exit_code`, `duration_ms`, `start_ms`, `end_ms` and `agent_status`.
+All identifiers are strings, and a missing value is `""`, so every line has the same keys. `job_end` additionally has `agent_exit_code`, `duration_ms`, `start_ms`, `end_ms`, `cpu_user_ms`, `cpu_sys_ms` and `agent_status`.
 
 | Field | Source |
 |---|---|
@@ -13,6 +13,8 @@ All identifiers are strings, and a missing value is `""`, so every line has the 
 | `job_id` | `CIRCLE_WORKFLOW_JOB_ID` (fallback `CIRCLE_JOB_ID`). The join key: equals `com.circleci.job.id` on CircleCI spans |
 | `job_name`, `job_number` | `CIRCLE_JOB`, `CIRCLE_BUILD_NUM` |
 | `workflow_id`, `pipeline_id` | `CIRCLE_WORKFLOW_ID`, `CIRCLE_PIPELINE_ID` |
+| `trace_id` | The pipeline ID without dashes. It is the trace ID of CircleCI's OpenTelemetry spans, so it joins an event to its trace |
+| `cgroup` | The runner agent's cgroup, read from `/proc/self/cgroup`, for example `/system.slice/circleci-runner.service`. It joins cAdvisor per-service metrics. An agent runs one job at a time, so the series is per job |
 | `pipeline_number` | `CIRCLE_PIPELINE_NUMBER`. The runner does not provide it, so it is normally empty |
 | `workflow_url`, `pipeline_url` | `<base>/workflow/<workflow_id>` and `<base>/pipeline/<pipeline_id>`. The base is `CCI_JOBLOG_APP_URL` |
 | `project`, `org` | `CIRCLE_PROJECT_REPONAME`, `CIRCLE_PROJECT_USERNAME` |
@@ -25,6 +27,7 @@ All identifiers are strings, and a missing value is `""`, so every line has the 
 | `wrapper_pid`, `agent_pid` (numbers) | The wrapper and the task agent process |
 | extra fields | `CCI_JOBLOG_EXTRA_FIELDS` |
 | `agent_exit_code`, `duration_ms`, `start_ms`, `end_ms` (numbers), `agent_status` | `job_end` only. `start_ms` and `end_ms` are epoch milliseconds |
+| `cpu_user_ms`, `cpu_sys_ms` (numbers) | `job_end` only. CPU time of the job's whole process tree, from the reaped-children rusage of the wrapper in `/proc/<pid>/stat`. It assumes `CLK_TCK=100`, standard on Linux x86_64 and arm64 |
 
 `agent_status` is `completed` (the agent exited 0), `agent_error`, or `cancelled` (the wrapper received `TERM`, `INT` or `HUP`). It describes the agent process, not the job result. See [How it works](../how-it-works/#agent_status-is-not-the-job-result).
 

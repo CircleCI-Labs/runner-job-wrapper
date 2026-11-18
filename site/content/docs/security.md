@@ -1,6 +1,6 @@
 ---
 title: Security
-weight: 10
+weight: 11
 ---
 
 To report a vulnerability, read [SECURITY.md](https://github.com/CircleCI-Labs/runner-job-wrapper/blob/main/SECURITY.md).

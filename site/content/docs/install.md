@@ -1,6 +1,6 @@
 ---
 title: Install
-weight: 1
+weight: 2
 ---
 
 Install the wrapper on every host that runs a machine runner. You need machine runner 3.1.11 or later on Linux, with `bash` 4 or later and the POSIX utilities `date`, `curl`, `mkdir`, `mv` and `rm`.

@@ -1,6 +1,6 @@
 ---
 title: Configuration
-weight: 2
+weight: 3
 ---
 
 All settings are environment variables of the runner process. They reach the wrapper because the runner passes its environment on. Five of them can also be `KEY=value` lines in the operator file (`CCI_JOBLOG_CONF`), marked *file* below. The file supplies defaults and the environment wins.
@@ -19,7 +19,7 @@ All settings are environment variables of the runner process. They reach the wra
 | `CCI_JOBLOG_EXTRA_FIELDS` | empty | `k=v,k=v`, merged into every event as strings (*file*). Reserved names and keys containing `token`, `secret`, `passw`, `credential`, `auth` or `apikey` are skipped. 128 bytes per value |
 | `CCI_JOBLOG_APP_URL` | `https://app.circleci.com` | Base for `workflow_url` and `pipeline_url`. Set it for CircleCI Server |
 | `CCI_JOBLOG_PROM_DIR` | empty (off) | Write `<dir>/<runner>.prom`, a Prometheus textfile with the [busy gauge](#busy-gauge) (*file*) |
-| `CCI_JOBLOG_PROM_JOB_ID` | empty | `1` adds a `job_id` label to the busy gauge (*file*). One series per job: fine for small fleets, high cardinality otherwise |
+| `CCI_JOBLOG_PROM_JOB_ID` | empty | `1` adds `job_id` and `workflow_id` labels to the busy gauge (*file*). One series per job: fine for small fleets, high cardinality otherwise |
 | `CCI_JOBLOG_HTTP_URL` | empty (off) | POST every event here, in the background, with `--max-time 2` |
 | `CCI_JOBLOG_HTTP_HEADER` | empty | One extra header, for example `Authorization: Bearer ...`. Passed to curl on stdin, so it is not visible in `ps` |
 | `CCI_JOBLOG_FORWARD_SIGNALS` | `1` | `0` stops the wrapper forwarding `TERM`, `INT` and `HUP` to the agent |
@@ -52,11 +52,11 @@ With several runners of different resource classes on one host, set `CCI_RESOURC
 With `CCI_JOBLOG_PROM_DIR` set, the wrapper also writes `<dir>/<runner>.prom`, a Prometheus textfile:
 
 ```text
-circleci_runner_busy{runner,resource_class,instance_id[,job_name,project,job_id]} 1|0
+circleci_runner_busy{runner,resource_class,instance_id[,job_name,project,job_id,workflow_id]} 1|0
 circleci_runner_job_start_time_seconds{...}      # only while busy
 ```
 
-`job_name` and `project` are present while busy. `CCI_JOBLOG_PROM_JOB_ID=1` adds `job_id`, one series per job, so use it on small fleets only. Read the file with Alloy's `prometheus.exporter.unix` textfile collector or node_exporter's `--collector.textfile.directory`.
+`job_name` and `project` are present while busy. `CCI_JOBLOG_PROM_JOB_ID=1` adds `job_id` and `workflow_id`, one series per job, so use it on small fleets only. Read the file with Alloy's `prometheus.exporter.unix` textfile collector or node_exporter's `--collector.textfile.directory`.
 
 ## State file
 

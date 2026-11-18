@@ -54,7 +54,7 @@ menu:
     # Styled as the call to action of the header (assets/css/custom.css).
     - identifier: get-started
       name: Get started
-      pageRef: /docs/install
+      pageRef: /docs/set-up-end-to-end
       weight: 7
 
 params:

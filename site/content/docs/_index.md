@@ -4,11 +4,12 @@ cascade:
   type: docs
 ---
 
-The wrapper records which job ran on which host. Start with [Install](install/), then read what you need.
+The wrapper records which job ran on which host. New here? Follow [Set it up end to end](set-up-end-to-end/): install, runner, CircleCI spans, shipper, dashboards, each with a check. The other pages are reference.
 
 | You want to | Read |
 |---|---|
-| Install it | [Install](install/) |
+| Set it all up | [Set it up end to end](set-up-end-to-end/) |
+| Install the wrapper only | [Install](install/) |
 | Change a setting | [Configuration](configuration/) |
 | Know what is logged | [Event schema](event-schema/) |
 | Understand what it does to a job | [How it works](how-it-works/) |

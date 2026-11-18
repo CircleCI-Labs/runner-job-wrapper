@@ -1,6 +1,6 @@
 ---
 title: EC2 metadata
-weight: 5
+weight: 6
 ---
 
 The wrapper reads the instance identity from one request to the instance identity document (`/latest/dynamic/instance-identity/document`).

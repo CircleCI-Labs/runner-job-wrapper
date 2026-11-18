@@ -1,6 +1,6 @@
 ---
 title: How it works
-weight: 4
+weight: 5
 ---
 
 ## How command_prefix invokes the wrapper

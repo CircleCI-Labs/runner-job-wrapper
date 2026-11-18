@@ -45,9 +45,11 @@ Only the first group is required.
 | **Optional** | HTTP sink (`CCI_JOBLOG_HTTP_URL`) | POST every event to an endpoint |
 | **Optional** | A shipper: the Grafana Alloy example, the Datadog Agent, Vector, Fluent Bit and others | Moves `jobs.jsonl` to your backend |
 | **Optional, experimental** | The task-agent journal pipeline | Live step progress and the job result per host. The internal log format may change |
-| **Optional** | The example Grafana dashboard | Needs the Alloy data in Grafana Cloud or similar |
+| **Optional** | The example Grafana dashboards | Need the Alloy data in Grafana Cloud or similar |
 
 ## Quickstart
+
+**For the full path (wrapper, CircleCI OpenTelemetry export, Alloy and dashboards), follow [Set it up end to end](https://circleci-labs.github.io/runner-job-wrapper/docs/set-up-end-to-end/).** The steps below are the wrapper alone.
 
 1. Install the wrapper and create the directories. The runner user must be able to write both.
 
@@ -84,6 +86,12 @@ Only the first group is required.
 
 Replace `circleci` with the account and group your runner runs as. [Install](https://circleci-labs.github.io/runner-job-wrapper/docs/install/) has log rotation and the multi-runner setup.
 
+## What you get
+
+![The CircleCI runner fleet dashboard](site/static/images/fleet-dashboard.png)
+
+The fleet dashboard, with pipeline performance from CircleCI spans, the live fleet, host health and recent jobs. A [job-detail dashboard](https://circleci-labs.github.io/runner-job-wrapper/docs/example-dashboard/) joins one job's trace, steps, host and CPU.
+
 ## How it fits together
 
 ```text
@@ -106,7 +114,9 @@ The project is pre-release (0.x). If a page claims more than this table shows, p
 |---|---|---|
 | Wrapper core | Tested | A real machine runner 3.1.14 on an Ubuntu 24.04 EC2 host with two runner agents. 62 bats tests, shellcheck clean |
 | Grafana Alloy example | Tested | Shipped to Grafana Cloud |
-| Example Grafana dashboard | Tested | Built from the Alloy data |
+| Example Grafana dashboards | Tested | Built from the Alloy data |
+| Per-job CPU and memory (cAdvisor) | Tested | Alloy cAdvisor block, joined on the wrapper's `cgroup` |
+| Pipeline performance panels | Tested | Grafana Cloud Tempo with TraceQL metrics |
 | Task-agent journal pipeline | Experimental | Reads an internal log format that may change between runner versions |
 | Datadog Agent | Documented, not tested | The steps follow Datadog's documentation |
 | CircleCI Server, Windows, macOS, container runner | Not tested, not supported | Machine runner on Linux only |
@@ -117,12 +127,13 @@ Read the docs at [circleci-labs.github.io/runner-job-wrapper](https://circleci-l
 
 | You want to | Read |
 |---|---|
-| Install it | [Install](https://circleci-labs.github.io/runner-job-wrapper/docs/install/) |
+| Set it all up | [Set it up end to end](https://circleci-labs.github.io/runner-job-wrapper/docs/set-up-end-to-end/) |
+| Install the wrapper only | [Install](https://circleci-labs.github.io/runner-job-wrapper/docs/install/) |
 | Change a setting | [Configuration](https://circleci-labs.github.io/runner-job-wrapper/docs/configuration/) |
 | Know what is logged | [Event schema](https://circleci-labs.github.io/runner-job-wrapper/docs/event-schema/) |
 | Join it with CircleCI spans | [Join data with CircleCI OpenTelemetry](https://circleci-labs.github.io/runner-job-wrapper/docs/join-with-opentelemetry/) |
 | Ship the data | [Alloy](https://circleci-labs.github.io/runner-job-wrapper/docs/ship-with-alloy/), [Datadog Agent](https://circleci-labs.github.io/runner-job-wrapper/docs/ship-with-datadog/) |
-| See a dashboard | [Example Grafana dashboard](https://circleci-labs.github.io/runner-job-wrapper/docs/example-dashboard/) |
+| See the dashboards | [Example Grafana dashboards](https://circleci-labs.github.io/runner-job-wrapper/docs/example-dashboard/) |
 | Judge the risk | [Security](https://circleci-labs.github.io/runner-job-wrapper/docs/security/) |
 | Fix a problem | [Troubleshooting](https://circleci-labs.github.io/runner-job-wrapper/docs/troubleshooting/), [FAQ](https://circleci-labs.github.io/runner-job-wrapper/docs/faq/) |
 

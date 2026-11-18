@@ -1,9 +1,9 @@
 ---
 title: Join data with CircleCI OpenTelemetry
-weight: 6
+weight: 7
 ---
 
-CircleCI's own OpenTelemetry job, step and task spans carry `com.circleci.resource.class` and `com.circleci.job.status`, but no runner or host identity. They are sent when each job finishes. The wrapper and the host agents add the where and the live view. Everything joins on two keys: `job_id` and `instance_id`.
+CircleCI's own OpenTelemetry job, step and task spans carry `com.circleci.resource.class` and `com.circleci.job.status`, but no runner or host identity. They are sent when each job finishes. The wrapper and the host agents add the where and the live view. Everything joins on a few keys: `job_id`, `trace_id` (the pipeline ID without dashes, the trace ID of the spans), `instance_id` and `cgroup`. The [end-to-end guide](../set-up-end-to-end/#4-turn-on-circlecis-opentelemetry-export) shows how to turn the export on.
 
 | Source | Carries | Join key |
 |---|---|---|
@@ -19,4 +19,4 @@ CircleCI's own OpenTelemetry job, step and task spans carry `com.circleci.resour
  instance_id -----+--> host metrics -----+--> what the host was doing meanwhile
 ```
 
-To receive the spans, set up the OpenTelemetry export of your CircleCI organization with CircleCI's exporter API (`POST /api/v2/otel/exporters`). See [Ship with Grafana Alloy](../ship-with-alloy/#circleci-spans-to-grafana) for a worked example, and CircleCI's documentation for the current API.
+To receive the spans, add an exporter in the organization settings or with CircleCI's exporter API (`POST /api/v2/otel/exporters`). See [Set it up end to end](../set-up-end-to-end/#4-turn-on-circlecis-opentelemetry-export) for the UI and API steps, and [Ship with Grafana Alloy](../ship-with-alloy/#circleci-spans-to-grafana) for a worked example, and CircleCI's documentation for the current API.

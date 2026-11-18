@@ -2,6 +2,8 @@
 title: CircleCI runner job wrapper
 ---
 
+**New here?** Follow [Set it up end to end](docs/set-up-end-to-end/): wrapper, CircleCI spans, shipper and dashboards, each stage with a check.
+
 ## What you need
 
 Only the first group is required. The wrapper works with nothing else.
@@ -18,7 +20,7 @@ Only the first group is required. The wrapper works with nothing else.
 | **Optional** | HTTP sink (`CCI_JOBLOG_HTTP_URL`) | POST every event to an endpoint |
 | **Optional** | A shipper: the Grafana Alloy example, the Datadog Agent, Vector, Fluent Bit and others | Moves `jobs.jsonl` to your backend |
 | **Optional, experimental** | The task-agent journal pipeline | Live step progress and the job result per host. The internal log format may change |
-| **Optional** | The example Grafana dashboard | Needs Alloy, Grafana Cloud or similar |
+| **Optional** | The example Grafana dashboards | Need Alloy, Grafana Cloud or similar |
 
 ## What is tested
 
@@ -28,7 +30,9 @@ The project is pre-release (0.x). If a page claims more than this table shows, p
 |---|---|---|
 | Wrapper core | Tested | A real machine runner 3.1.14 on an Ubuntu 24.04 EC2 host with two runner agents. 62 bats tests, shellcheck clean |
 | Grafana Alloy example | Tested | Shipped to Grafana Cloud |
-| Example Grafana dashboard | Tested | Built from the Alloy data above |
+| Example Grafana dashboards | Tested | Built from the Alloy data above |
+| Per-job CPU and memory (cAdvisor) | Tested | Alloy cAdvisor block, joined on the wrapper's `cgroup` |
+| Pipeline performance panels | Tested | Grafana Cloud Tempo with TraceQL metrics |
 | Task-agent journal pipeline | Experimental | Works today. It reads an internal log format that may change between runner versions |
 | Datadog Agent | Documented, not tested | The steps follow Datadog's documentation |
 | CircleCI Server, Windows, macOS, container runner | Not tested, not supported | Machine runner on Linux only |
