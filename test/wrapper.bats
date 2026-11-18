@@ -606,3 +606,10 @@ YAML
   [ "$status" -eq 0 ]
   [ -f "$BATS_TEST_TMPDIR/prom2/r2.prom" ]
 }
+
+@test "job_end carries start_ms/end_ms that bracket duration_ms" {
+  run "$WRAPPER" sh -c 'sleep 0.2'
+  [ "$status" -eq 0 ]
+  run jq -e 'select(.event=="job_end") | (.end_ms - .start_ms) == .duration_ms and .duration_ms >= 150' "$CCI_JOBLOG_FILE"
+  [ "$status" -eq 0 ]
+}

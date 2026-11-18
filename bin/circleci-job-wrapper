@@ -29,7 +29,7 @@ MAX_LINE_BYTES=3800
 NEG_CACHE_TTL=300
 
 # Keys that CCI_JOBLOG_EXTRA_FIELDS may not override.
-RESERVED_KEYS=" schema event ts job_id job_name job_number workflow_id pipeline_id pipeline_number project org branch sha build_url node_index pr_number hostname instance_id instance_type availability_zone region private_ip ami_id runner_name resource_class wrapper_pid agent_pid agent_exit_code duration_ms agent_status org_id project_id truncated state updated_at "
+RESERVED_KEYS=" schema event ts job_id job_name job_number workflow_id pipeline_id pipeline_number project org branch sha build_url node_index pr_number hostname instance_id instance_type availability_zone region private_ip ami_id runner_name resource_class wrapper_pid agent_pid agent_exit_code duration_ms start_ms end_ms agent_status org_id project_id truncated state updated_at "
 
 dbg() {
   if [[ -n ${CCI_JOBLOG_DEBUG:-} ]]; then
@@ -672,6 +672,8 @@ telemetry_end() {
   FRAG=""
   jaddn agent_exit_code "$rc"
   jaddn duration_ms "$dur"
+  jaddn start_ms "$START_MS"
+  jaddn end_ms "$END_MS"
   jadd agent_status "$status" 16
   emit job_end "$FRAG"
   state_end
