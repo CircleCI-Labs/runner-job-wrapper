@@ -601,6 +601,10 @@ prom_write() {
   labels+=",resource_class=\"$REPLY\""
   prom_escape "${HOST_instance_id:-}"
   labels+=",instance_id=\"$REPLY\""
+  local cg=""
+  [[ -r /proc/self/cgroup ]] && { IFS= read -r cg </proc/self/cgroup; } 2>/dev/null
+  prom_escape "${cg#*::}"
+  labels+=",cgroup=\"$REPLY\""
   if ((busy)); then
     prom_escape "${CIRCLE_JOB:-}"
     labels+=",job_name=\"$REPLY\""

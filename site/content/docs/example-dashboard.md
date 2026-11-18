@@ -45,3 +45,46 @@ Job, workflow and pipeline IDs link to the CircleCI UI (`build_url`, `workflow_u
 - **Host metrics** during the job window.
 
 More dashboards (runner detail, resource class detail) are being added to `examples/grafana/`.
+
+## Runner detail dashboard
+
+`examples/grafana/build_runner_dashboards.py runner` generates it (uid `cci-runner-detail`). Click any runner name in the other dashboards, or open it with `?var-runner=<runner name>`. The `cgroup` and `instance` variables fill in from the runner's busy gauge.
+
+![The runner detail dashboard: status, jobs taken, failures, busy time, CPU time, the runner's CPU and memory, host metrics, and every job it ran](../../images/runner-dashboard.png)
+
+- **Summary:** status now, jobs taken, failed jobs, share of time busy, CPU time used by its jobs, and median job duration.
+- **Running now:** the current job, with links to CircleCI and to the job-detail dashboard.
+- **Resources:** the runner service's own CPU and memory (cAdvisor, its cgroup), its busy/idle state, and the host's CPU, IO wait and memory.
+- **Jobs this runner took:** jobs over time, results over time (task agent log, experimental), duration per job, and a table of every job, newest first, linked to CircleCI and to the job-detail dashboard.
+
+Failed-job counts come from the task agent's journal line, matched to the runner through its systemd unit (`label_format cg="/system.slice/{{.unit}}"`), so they need the optional journal pipeline in the Alloy example.
+
+## Resource class dashboard
+
+`examples/grafana/build_runner_dashboards.py resource-class` generates it (uid `cci-runner-rc`). Click any resource class in the other dashboards, or open it with `?var-rc=<namespace>/<class>`.
+
+![The resource class dashboard: runners, busy now, utilization, job count and duration percentiles, per-runner load and resources, slowest jobs and recent jobs](../../images/resource-class-dashboard.png)
+
+- **Summary:** runners, busy now, utilization over the time range, jobs, and median and P95 job duration (CircleCI spans filtered on `com.circleci.resource.class`).
+- **Runners in this class:** busy or idle, the current job, and CPU now; each runner links to its detail dashboard.
+- **Capacity and load:** busy runners against runners, jobs started per runner, job results, host CPU for the hosts in the class, and CPU and memory per runner.
+- **Jobs in this class:** slowest jobs (median, P95, max) and recent jobs.
+
+Queue depth and wait time per class are not in these dashboards: CircleCI's spans don't carry them. The fleet API (`GET /api/v3/runner/fleets`, or `circleci runner fleet list`) returns running and queued counts per class if you want to poll them.
+
+## Upload all four
+
+```bash
+for d in fleet job runner resource-class; do
+  case $d in
+    fleet) python3 examples/grafana/build_dashboard.py ;;
+    job) python3 examples/grafana/build_job_dashboard.py ;;
+    *) python3 examples/grafana/build_runner_dashboards.py "$d" ;;
+  esac > "$d.json"
+  jq -n --slurpfile d "$d.json" '{dashboard: $d[0], overwrite: true}' |
+    curl -s -H "Authorization: Bearer $GRAFANA_TOKEN" -H 'Content-Type: application/json' \
+      -X POST "$GRAFANA_URL/api/dashboards/db" -d @-
+done
+```
+
+All four accept `--prom`, `--loki`, `--tempo` (data source UIDs) and `--app-url` (CircleCI UI base, for CircleCI Server).

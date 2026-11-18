@@ -24,6 +24,10 @@ def links_on(field, *ls):
     return {"matcher": {"id": "byName", "options": field}, "properties": [{"id": "links", "value": list(ls)}]}
 
 JOBDASH = "/d/cci-runner-job/circleci-job-detail"
+RUNDASH = "/d/cci-runner-detail/circleci-runner-detail"
+RCDASH = "/d/cci-runner-rc/circleci-resource-class"
+RUNNER_LINK = lambda f="runner": links_on(f, link("Open runner (jobs, CPU, memory)", RUNDASH + "?var-runner=${__value.raw}&${__url_time_range}", False))
+RC_LINK = lambda f="resource_class": links_on(f, link("Open resource class", RCDASH + "?var-rc=${__value.raw}&${__url_time_range}", False))
 DRILL = JOBDASH + "?var-job_id=${__value.raw}&from=now-3h&to=now"
 SEL = '{service_name="circleci-job-wrapper"}'
 TA = SEL + ' | log_type="task_agent"'
@@ -179,6 +183,7 @@ add({"type": "table", "title": "What each runner is doing now", "datasource": PR
              {"id": "mappings", "value": [{"type": "value", "options": {"0": {"text": "idle", "color": "blue"}, "1": {"text": "busy", "color": "green"}}}]},
              {"id": "custom.cellOptions", "value": {"type": "color-background"}}]},
          links_on("job_name", link("Open running job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}")),
+         RUNNER_LINK(), RC_LINK(),
          links_on("job_id", link("Open running job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__value.raw}"), link("Drill into this job", DRILL, False)),
          links_on("workflow_id", link("Open workflow in CircleCI", APP + "/workflow/${__value.raw}"))]}}, 24, 7, 0)
 nl(7)
@@ -251,6 +256,7 @@ add({"type": "table", "title": "Recent jobs (wrapper job_end events): which host
          {"matcher": {"id": "byName", "options": "job_id"}, "properties": [{"id": "links", "value": JOB_LINK}]},
          links_on("job_name", link("Open job in CircleCI", "${__data.fields.build_url}")),
          links_on("workflow_id", link("Open workflow in CircleCI", APP + "/workflow/${__value.raw}")),
+         RUNNER_LINK("runner_name"),
          links_on("pipeline_id", link("Open pipeline in CircleCI", APP + "/pipeline/${__value.raw}")),
          {"matcher": {"id": "byRegexp", "options": "trace_id|cgroup|cpu_user_ms|cpu_sys_ms"}, "properties": [{"id": "custom.hidden", "value": True}]},
          {"matcher": {"id": "byName", "options": "workflow_url"}, "properties": [{"id": "custom.hidden", "value": True}]},
@@ -265,7 +271,9 @@ dash = {
     "uid": "cci-runner-fleet", "title": "CircleCI runner fleet", "tags": ["circleci", "runner"],
     "timezone": "browser", "schemaVersion": 39, "refresh": "30s",
     "time": {"from": "now-3h", "to": "now"},
-    "links": [{"title": "Job detail", "type": "link", "url": "/d/cci-runner-job/circleci-job-detail", "icon": "dashboard"}],
+    "links": [{"title": "Resource class", "type": "link", "url": RCDASH, "icon": "dashboard", "keepTime": True},
+              {"title": "Runner detail", "type": "link", "url": RUNDASH, "icon": "dashboard", "keepTime": True},
+              {"title": "Job detail", "type": "link", "url": JOBDASH, "icon": "dashboard", "keepTime": True}],
     "templating": {"list": [
         {"name": "branch", "label": "Branch (regex)", "type": "textbox", "query": ".*", "current": {"text": ".*", "value": ".*"}},
         {"name": "instance", "label": "EC2 instance", "type": "query", "datasource": PROM,

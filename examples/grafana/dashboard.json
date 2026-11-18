@@ -14,10 +14,25 @@
  },
  "links": [
   {
+   "title": "Resource class",
+   "type": "link",
+   "url": "/d/cci-runner-rc/circleci-resource-class",
+   "icon": "dashboard",
+   "keepTime": true
+  },
+  {
+   "title": "Runner detail",
+   "type": "link",
+   "url": "/d/cci-runner-detail/circleci-runner-detail",
+   "icon": "dashboard",
+   "keepTime": true
+  },
+  {
    "title": "Job detail",
    "type": "link",
    "url": "/d/cci-runner-job/circleci-job-detail",
-   "icon": "dashboard"
+   "icon": "dashboard",
+   "keepTime": true
   }
  ],
  "templating": {
@@ -1038,6 +1053,42 @@
      {
       "matcher": {
        "id": "byName",
+       "options": "runner"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open runner (jobs, CPU, memory)",
+          "url": "/d/cci-runner-detail/circleci-runner-detail?var-runner=${__value.raw}&${__url_time_range}",
+          "targetBlank": false
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "resource_class"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open resource class",
+          "url": "/d/cci-runner-rc/circleci-resource-class?var-rc=${__value.raw}&${__url_time_range}",
+          "targetBlank": false
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
        "options": "job_id"
       },
       "properties": [
@@ -1917,6 +1968,24 @@
           "title": "Open workflow in CircleCI",
           "url": "https://app.circleci.com/workflow/${__value.raw}",
           "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "runner_name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open runner (jobs, CPU, memory)",
+          "url": "/d/cci-runner-detail/circleci-runner-detail?var-runner=${__value.raw}&${__url_time_range}",
+          "targetBlank": false
          }
         ]
        }

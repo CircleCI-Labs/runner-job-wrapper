@@ -1012,7 +1012,51 @@ data-copied-label="Copied!"
 &lt;li&gt;&lt;strong&gt;CPU time&lt;/strong&gt; of the job (&lt;code&gt;cpu_user_ms&lt;/code&gt;, &lt;code&gt;cpu_sys_ms&lt;/code&gt;) from the wrapper.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Host metrics&lt;/strong&gt; during the job window.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;More dashboards (runner detail, resource class detail) are being added to &lt;code&gt;examples/grafana/&lt;/code&gt;.&lt;/p&gt;</description></item><item><title>Security</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/security/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/security/</guid><description>
+&lt;p&gt;More dashboards (runner detail, resource class detail) are being added to &lt;code&gt;examples/grafana/&lt;/code&gt;.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="runner-detail-dashboard"&gt;Runner detail dashboard&lt;span class="hx:absolute hx:-mt-20" id="runner-detail-dashboard"&gt;&lt;/span&gt;
+&lt;a href="#runner-detail-dashboard" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;examples/grafana/build_runner_dashboards.py runner&lt;/code&gt; generates it (uid &lt;code&gt;cci-runner-detail&lt;/code&gt;). Click any runner name in the other dashboards, or open it with &lt;code&gt;?var-runner=&amp;lt;runner name&amp;gt;&lt;/code&gt;. The &lt;code&gt;cgroup&lt;/code&gt; and &lt;code&gt;instance&lt;/code&gt; variables fill in from the runner&amp;rsquo;s busy gauge.&lt;/p&gt;
+&lt;p&gt;&lt;img src="../../images/runner-dashboard.png" alt="The runner detail dashboard: status, jobs taken, failures, busy time, CPU time, the runner’s CPU and memory, host metrics, and every job it ran" loading="lazy" /&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Summary:&lt;/strong&gt; status now, jobs taken, failed jobs, share of time busy, CPU time used by its jobs, and median job duration.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Running now:&lt;/strong&gt; the current job, with links to CircleCI and to the job-detail dashboard.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Resources:&lt;/strong&gt; the runner service&amp;rsquo;s own CPU and memory (cAdvisor, its cgroup), its busy/idle state, and the host&amp;rsquo;s CPU, IO wait and memory.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Jobs this runner took:&lt;/strong&gt; jobs over time, results over time (task agent log, experimental), duration per job, and a table of every job, newest first, linked to CircleCI and to the job-detail dashboard.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Failed-job counts come from the task agent&amp;rsquo;s journal line, matched to the runner through its systemd unit (&lt;code&gt;label_format cg=&amp;quot;/system.slice/{{.unit}}&amp;quot;&lt;/code&gt;), so they need the optional journal pipeline in the Alloy example.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="resource-class-dashboard"&gt;Resource class dashboard&lt;span class="hx:absolute hx:-mt-20" id="resource-class-dashboard"&gt;&lt;/span&gt;
+&lt;a href="#resource-class-dashboard" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;examples/grafana/build_runner_dashboards.py resource-class&lt;/code&gt; generates it (uid &lt;code&gt;cci-runner-rc&lt;/code&gt;). Click any resource class in the other dashboards, or open it with &lt;code&gt;?var-rc=&amp;lt;namespace&amp;gt;/&amp;lt;class&amp;gt;&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;img src="../../images/resource-class-dashboard.png" alt="The resource class dashboard: runners, busy now, utilization, job count and duration percentiles, per-runner load and resources, slowest jobs and recent jobs" loading="lazy" /&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Summary:&lt;/strong&gt; runners, busy now, utilization over the time range, jobs, and median and P95 job duration (CircleCI spans filtered on &lt;code&gt;com.circleci.resource.class&lt;/code&gt;).&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Runners in this class:&lt;/strong&gt; busy or idle, the current job, and CPU now; each runner links to its detail dashboard.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Capacity and load:&lt;/strong&gt; busy runners against runners, jobs started per runner, job results, host CPU for the hosts in the class, and CPU and memory per runner.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Jobs in this class:&lt;/strong&gt; slowest jobs (median, P95, max) and recent jobs.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Queue depth and wait time per class are not in these dashboards: CircleCI&amp;rsquo;s spans don&amp;rsquo;t carry them. The fleet API (&lt;code&gt;GET /api/v3/runner/fleets&lt;/code&gt;, or &lt;code&gt;circleci runner fleet list&lt;/code&gt;) returns running and queued counts per class if you want to poll them.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="upload-all-four"&gt;Upload all four&lt;span class="hx:absolute hx:-mt-20" id="upload-all-four"&gt;&lt;/span&gt;
+&lt;a href="#upload-all-four" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;for&lt;/span&gt; d in fleet job runner resource-class&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;case&lt;/span&gt; &lt;span class="nv"&gt;$d&lt;/span&gt; in
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; fleet&lt;span class="o"&gt;)&lt;/span&gt; python3 examples/grafana/build_dashboard.py &lt;span class="p"&gt;;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; job&lt;span class="o"&gt;)&lt;/span&gt; python3 examples/grafana/build_job_dashboard.py &lt;span class="p"&gt;;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; *&lt;span class="o"&gt;)&lt;/span&gt; python3 examples/grafana/build_runner_dashboards.py &lt;span class="s2"&gt;&amp;#34;&lt;/span&gt;&lt;span class="nv"&gt;$d&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;&lt;/span&gt; &lt;span class="p"&gt;;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;esac&lt;/span&gt; &amp;gt; &lt;span class="s2"&gt;&amp;#34;&lt;/span&gt;&lt;span class="nv"&gt;$d&lt;/span&gt;&lt;span class="s2"&gt;.json&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; jq -n --slurpfile d &lt;span class="s2"&gt;&amp;#34;&lt;/span&gt;&lt;span class="nv"&gt;$d&lt;/span&gt;&lt;span class="s2"&gt;.json&amp;#34;&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;{dashboard: $d[0], overwrite: true}&amp;#39;&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; curl -s -H &lt;span class="s2"&gt;&amp;#34;Authorization: Bearer &lt;/span&gt;&lt;span class="nv"&gt;$GRAFANA_TOKEN&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;&lt;/span&gt; -H &lt;span class="s1"&gt;&amp;#39;Content-Type: application/json&amp;#39;&lt;/span&gt; &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; -X POST &lt;span class="s2"&gt;&amp;#34;&lt;/span&gt;&lt;span class="nv"&gt;$GRAFANA_URL&lt;/span&gt;&lt;span class="s2"&gt;/api/dashboards/db&amp;#34;&lt;/span&gt; -d @-
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;done&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;All four accept &lt;code&gt;--prom&lt;/code&gt;, &lt;code&gt;--loki&lt;/code&gt;, &lt;code&gt;--tempo&lt;/code&gt; (data source UIDs) and &lt;code&gt;--app-url&lt;/code&gt; (CircleCI UI base, for CircleCI Server).&lt;/p&gt;</description></item><item><title>Security</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/security/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/security/</guid><description>
 &lt;p&gt;To report a vulnerability, read &lt;a href="https://github.com/CircleCI-Labs/runner-job-wrapper/blob/main/SECURITY.md" target="_blank" rel="noopener"&gt;SECURITY.md&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 data-hextra-search-id="what-the-wrapper-reads-and-writes"&gt;What the wrapper reads and writes&lt;span class="hx:absolute hx:-mt-20" id="what-the-wrapper-reads-and-writes"&gt;&lt;/span&gt;
 &lt;a href="#what-the-wrapper-reads-and-writes" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
