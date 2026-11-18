@@ -101,6 +101,44 @@ otelcol.receiver.prometheus "default" {
   output { metrics = [otelcol.processor.resourcedetection.default.input] }
 }
 
+// ---- 2b. Per-runner-agent CPU and memory (cAdvisor on the systemd cgroups).
+// Each runner agent runs one job at a time in its own service cgroup, so this
+// is per-job resource use over time. Join on the wrapper's `cgroup` field.
+prometheus.exporter.cadvisor "runners" {
+  docker_only    = false
+  enabled_metrics = ["cpu", "memory", "diskIO"]
+  storage_duration = "2m"
+}
+
+discovery.relabel "cadvisor" {
+  targets = prometheus.exporter.cadvisor.runners.targets
+}
+
+prometheus.scrape "cadvisor" {
+  targets         = discovery.relabel.cadvisor.output
+  scrape_interval = "15s"
+  forward_to      = [prometheus.relabel.runner_cgroups.receiver]
+}
+
+// Keep only the runner services' cgroups and the few series we chart.
+prometheus.relabel "runner_cgroups" {
+  rule {
+    source_labels = ["id"]
+    regex         = "/system.slice/circleci-runner.*\\.service"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_memory_rss|container_fs_(reads|writes)_bytes_total|container_blkio_device_usage_total"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["id"]
+    target_label  = "cgroup"
+  }
+  forward_to = [otelcol.receiver.prometheus.default.receiver]
+}
+
 // ---- 3. Tag everything with the EC2 identity (host.id = instance id) ----
 otelcol.processor.resourcedetection "default" {
   detectors = ["ec2", "system"]
