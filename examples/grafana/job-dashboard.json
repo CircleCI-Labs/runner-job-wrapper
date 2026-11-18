@@ -450,7 +450,7 @@
       "uid": "grafanacloud-traces"
      },
      "queryType": "traceql",
-     "query": "{ name =~ \"Step:.*\" && span.com.circleci.job.id = \"$job_id\" } | select(span.com.circleci.task.result)",
+     "query": "{ name =~ \"Step:.*\" && span.com.circleci.job.id = \"$job_id\" } | select(status, span.com.circleci.step.exit_code)",
      "refId": "A",
      "limit": 50,
      "spss": 100,
@@ -483,6 +483,15 @@
        "name": "span"
       }
      }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "renameByName": {
+       "status": "step status",
+       "com.circleci.step.exit_code": "exit code"
+      }
+     }
     }
    ],
    "fieldConfig": {
@@ -497,6 +506,42 @@
        {
         "id": "unit",
         "value": "ns"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "step status"
+      },
+      "properties": [
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "error": {
+            "text": "failed",
+            "color": "red"
+           },
+           "unset": {
+            "text": "ok",
+            "color": "green"
+           },
+           "ok": {
+            "text": "ok",
+            "color": "green"
+           }
+          }
+         }
+        ]
+       },
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "color-text"
+        }
        }
       ]
      },

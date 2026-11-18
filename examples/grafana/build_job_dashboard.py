@@ -95,9 +95,12 @@ add({"type": "traces", "title": "Trace $trace_id", "datasource": TEMPO,
      "targets": [{"datasource": TEMPO, "queryType": "traceql", "query": "$trace_id", "refId": "A"}]}, 24, 14, 0)
 nl(14)
 add({"type": "table", "title": "Steps, slowest first", "datasource": TEMPO,
-     "targets": [traceql('{ name =~ "Step:.*" && span.com.circleci.job.id = "$job_id" } | select(span.com.circleci.task.result)')],
-     "transformations": TEMPO_FLAT,
+     "targets": [traceql('{ name =~ "Step:.*" && span.com.circleci.job.id = "$job_id" } | select(status, span.com.circleci.step.exit_code)')],
+     "transformations": TEMPO_FLAT + [{"id": "organize", "options": {"renameByName": {"status": "step status", "com.circleci.step.exit_code": "exit code"}}}],
      "fieldConfig": {"defaults": {}, "overrides": [{"matcher": {"id": "byName", "options": "duration"}, "properties": [{"id": "unit", "value": "ns"}]},
+                                                   {"matcher": {"id": "byName", "options": "step status"}, "properties": [
+                                                       {"id": "mappings", "value": [{"type": "value", "options": {"error": {"text": "failed", "color": "red"}, "unset": {"text": "ok", "color": "green"}, "ok": {"text": "ok", "color": "green"}}}]},
+                                                       {"id": "custom.cellOptions", "value": {"type": "color-text"}}]},
                                                    hide("trace_id|job_id")]},
      "options": {"sortBy": [{"displayName": "duration", "desc": True}]}}, 12, 8, 0)
 add({"type": "table", "title": "Step progress as it happened (task agent log on the host)", "datasource": LOKI,
