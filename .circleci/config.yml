@@ -1,0 +1,74 @@
+version: 2.1
+
+parameters:
+  lab:
+    type: boolean
+    default: false
+    description: Run the lab jobs on the self-hosted runner resource class.
+  lab-sleep-seconds:
+    type: integer
+    default: 300
+
+executors:
+  lab-runner:
+    machine: true
+    resource_class: cci-labs-standalone/job-wrapper-lab
+
+jobs:
+  check:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - run:
+          name: Install shellcheck and bats
+          command: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck bats jq python3 >/dev/null
+      - run:
+          name: shellcheck + bats
+          command: make check
+
+  lab-pass:
+    executor: lab-runner
+    steps:
+      - run: echo "hello from $(hostname)"
+      - run:
+          name: A step with "quotes", 'apostrophes', & an emoji 🚀
+          command: echo ok
+
+  lab-fail:
+    executor: lab-runner
+    steps:
+      - run: echo "about to fail"; exit 3
+
+  lab-cpu:
+    executor: lab-runner
+    steps:
+      - run:
+          name: Burn CPU for 90s
+          command: timeout 90 sh -c 'while :; do :; done' || true
+      - run:
+          name: Write and read 500 MB
+          command: dd if=/dev/zero of=./blob bs=1M count=500 oflag=direct && dd if=./blob of=/dev/null bs=1M iflag=direct && rm -f ./blob
+
+  lab-sleep:
+    executor: lab-runner
+    parameters:
+      seconds:
+        type: integer
+    steps:
+      - run: sleep << parameters.seconds >>
+
+workflows:
+  ci:
+    when:
+      not: << pipeline.parameters.lab >>
+    jobs:
+      - check
+  lab:
+    when: << pipeline.parameters.lab >>
+    jobs:
+      - lab-pass
+      - lab-fail
+      - lab-cpu
+      - lab-sleep:
+          seconds: << pipeline.parameters.lab-sleep-seconds >>
