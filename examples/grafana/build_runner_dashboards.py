@@ -103,10 +103,10 @@ JOBS_TABLE_TX = [
     {"id": "convertFieldType", "options": {"conversions": [{"targetField": f, "destinationType": "number"} for f in ("duration_ms", "cpu_user_ms", "cpu_sys_ms")]}}]
 JOBS_TABLE_FC = {"defaults": {}, "overrides": [
     unit("duration_ms|cpu_user_ms|cpu_sys_ms", "ms"),
-    links_on("job_name", link("Open job in CircleCI", "${__data.fields.build_url}")),
+    links_on("job_name", link("Open job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}")),
     links_on("job_id", link("Drill into this job (spans, steps, resources)",
                             JOBDASH + "?var-job_id=${__value.raw}&var-trace_id=${__data.fields.trace_id}&var-cgroup=${__data.fields.cgroup}&var-instance=${__data.fields.instance_id}&from=${__data.fields.start_ms}&to=${__data.fields.end_ms}", False),
-             link("Open job in CircleCI", "${__data.fields.build_url}")),
+             link("Open job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}")),
     links_on("workflow_id", link("Open workflow in CircleCI", APP + "/workflow/${__value.raw}")),
     links_on("pipeline_id", link("Open pipeline in CircleCI", APP + "/pipeline/${__value.raw}")),
     links_on("runner_name", link("Open runner", RUNDASH + "?var-runner=${__value.raw}&${__url_time_range}", False)),

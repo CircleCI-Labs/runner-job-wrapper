@@ -1806,11 +1806,6 @@
           "title": "Drill into this job",
           "url": "/d/cci-runner-job/circleci-job-detail?var-job_id=${__value.raw}&from=now-3h&to=now",
           "targetBlank": false
-         },
-         {
-          "title": "Open job in CircleCI",
-          "url": "${__data.fields.build_uri}",
-          "targetBlank": true
          }
         ]
        }
@@ -1930,7 +1925,7 @@
          },
          {
           "title": "Open job in CircleCI",
-          "url": "${__data.fields.build_url}",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}",
           "targetBlank": true
          }
         ]
@@ -1948,7 +1943,7 @@
         "value": [
          {
           "title": "Open job in CircleCI",
-          "url": "${__data.fields.build_url}",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}",
           "targetBlank": true
          }
         ]

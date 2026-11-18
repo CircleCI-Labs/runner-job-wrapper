@@ -67,11 +67,11 @@ add({"type": "table", "title": "Where and when it ran (wrapper)", "datasource": 
      "targets": [{"datasource": LOKI, "refId": "A", "expr": '%s | json | job_id="$job_id" | event="job_end"' % SEL}],
      "transformations": [{"id": "extractFields", "options": {"source": "Line", "format": "json", "replace": True}},
                          {"id": "filterFieldsByName", "options": {"include": {"names": [
-                             "job_name", "runner_name", "instance_id", "instance_type", "availability_zone", "resource_class",
+                             "job_name", "job_id", "runner_name", "instance_id", "instance_type", "availability_zone", "resource_class",
                              "duration_ms", "cpu_user_ms", "cpu_sys_ms", "branch", "workflow_id", "pipeline_id", "build_url", "cgroup"]}}}],
      "fieldConfig": {"defaults": {}, "overrides": [
          {"matcher": {"id": "byRegexp", "options": "duration_ms|cpu_user_ms|cpu_sys_ms"}, "properties": [{"id": "unit", "value": "ms"}]},
-         links_on("job_name", link("Open job in CircleCI", "${__data.fields.build_url}")),
+         links_on("job_name", link("Open job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}")),
          links_on("workflow_id", link("Open workflow in CircleCI", APP + "/workflow/${__value.raw}")),
          links_on("pipeline_id", link("Open pipeline in CircleCI", APP + "/pipeline/${__value.raw}")),
          hide("build_url")]}}, 24, 4, 0)

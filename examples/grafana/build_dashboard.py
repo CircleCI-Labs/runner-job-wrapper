@@ -81,7 +81,7 @@ BR = 'span.vcs.ref.head.name =~ "$branch"'
 
 JOB_LINK = [{"title": "Drill into this job (spans, steps, resources)",
              "url": "/d/cci-runner-job/circleci-job-detail?var-job_id=${__data.fields.job_id}&var-trace_id=${__data.fields.trace_id}&var-cgroup=${__data.fields.cgroup}&var-instance=${__data.fields.instance_id}&from=${__data.fields.start_ms}&to=${__data.fields.end_ms}"},
-            {"title": "Open job in CircleCI", "url": "${__data.fields.build_url}", "targetBlank": True}]
+            {"title": "Open job in CircleCI", "url": APP + "/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}", "targetBlank": True}]
 
 # ---------------------------------------------------------------- pipelines
 row("Pipeline performance (CircleCI OpenTelemetry spans)")
@@ -240,7 +240,7 @@ add({"type": "table", "title": "Live step activity (task agent log, seconds behi
                          {"id": "organize", "options": {"renameByName": {"job-id": "job_id", "duration": "duration_ms"}}}],
      "fieldConfig": {"defaults": {}, "overrides": [{"matcher": {"id": "byName", "options": "duration_ms"}, "properties": [{"id": "unit", "value": "ms"}]},
                                                    {"matcher": {"id": "byName", "options": "build_uri"}, "properties": [{"id": "custom.hidden", "value": True}]},
-                                                   links_on("job_id", link("Drill into this job", DRILL, False), link("Open job in CircleCI", "${__data.fields.build_uri}"))]},
+                                                   links_on("job_id", link("Drill into this job", DRILL, False))]},
      "options": {"sortBy": [{"displayName": "time", "desc": True}]}}, 12, 7, 12)
 nl(7)
 
@@ -254,7 +254,7 @@ add({"type": "table", "title": "Recent jobs (wrapper job_end events): which host
      "fieldConfig": {"defaults": {}, "overrides": [
          {"matcher": {"id": "byName", "options": "duration_ms"}, "properties": [{"id": "unit", "value": "ms"}]},
          {"matcher": {"id": "byName", "options": "job_id"}, "properties": [{"id": "links", "value": JOB_LINK}]},
-         links_on("job_name", link("Open job in CircleCI", "${__data.fields.build_url}")),
+         links_on("job_name", link("Open job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}")),
          links_on("workflow_id", link("Open workflow in CircleCI", APP + "/workflow/${__value.raw}")),
          RUNNER_LINK("runner_name"),
          links_on("pipeline_id", link("Open pipeline in CircleCI", APP + "/pipeline/${__value.raw}")),

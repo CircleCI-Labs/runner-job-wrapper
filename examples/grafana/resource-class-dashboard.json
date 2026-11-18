@@ -1292,7 +1292,7 @@
         "value": [
          {
           "title": "Open job in CircleCI",
-          "url": "${__data.fields.build_url}",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}",
           "targetBlank": true
          }
         ]
@@ -1315,7 +1315,7 @@
          },
          {
           "title": "Open job in CircleCI",
-          "url": "${__data.fields.build_url}",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}",
           "targetBlank": true
          }
         ]
