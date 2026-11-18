@@ -29,7 +29,7 @@ MAX_LINE_BYTES=3800
 NEG_CACHE_TTL=300
 
 # Keys that CCI_JOBLOG_EXTRA_FIELDS may not override.
-RESERVED_KEYS=" schema event ts job_id job_name job_number workflow_id pipeline_id pipeline_number project org branch sha build_url workflow_url pipeline_url node_index pr_number hostname instance_id instance_type availability_zone region private_ip ami_id runner_name resource_class wrapper_pid agent_pid agent_exit_code duration_ms start_ms end_ms agent_status org_id project_id truncated state updated_at "
+RESERVED_KEYS=" schema event ts job_id job_name job_number workflow_id pipeline_id pipeline_number project org branch sha build_url workflow_url pipeline_url trace_id cgroup node_index pr_number hostname instance_id instance_type availability_zone region private_ip ami_id runner_name resource_class wrapper_pid agent_pid agent_exit_code duration_ms start_ms end_ms cpu_user_ms cpu_sys_ms agent_status org_id project_id truncated state updated_at "
 
 dbg() {
   if [[ -n ${CCI_JOBLOG_DEBUG:-} ]]; then
@@ -465,6 +465,14 @@ build_common() {
   app=${app%/}
   if [[ -n $wf ]]; then jadd workflow_url "$app/workflow/$wf" 256; else jadd workflow_url "" 1; fi
   if [[ -n $pl ]]; then jadd pipeline_url "$app/pipeline/$pl" 256; else jadd pipeline_url "" 1; fi
+  # CircleCI's OpenTelemetry trace id is the pipeline id without dashes.
+  jadd trace_id "${pl//-/}" 32
+  # The runner agent's control group (one job at a time per agent), to join
+  # per-service CPU/memory metrics such as cAdvisor's.
+  local cg=""
+  [[ -r /proc/self/cgroup ]] && { IFS= read -r cg </proc/self/cgroup; } 2>/dev/null
+  cg=${cg#*::}
+  jadd cgroup "$cg" 256
   first_env CIRCLE_NODE_INDEX
   jadd node_index "$REPLY" 16
   first_env CIRCLE_PR_NUMBER
@@ -675,6 +683,22 @@ telemetry_start() {
   prom_write 1
 }
 
+# children_cpu_ms: user and system CPU (ms) of all reaped children, from
+# cutime/cstime in /proc/<wrapper pid>/stat (read in this shell, no fork), into
+# CPU_USER_MS / CPU_SYS_MS. 0 where /proc is unavailable.
+children_cpu_ms() {
+  local stat rest hz=${CLK_TCK:-100}
+  local -a f
+  CPU_USER_MS=0 CPU_SYS_MS=0
+  { IFS= read -r stat <"/proc/$$/stat"; } 2>/dev/null || return 0
+  rest=${stat##*) }
+  read -r -a f <<<"$rest"
+  # after the comm field: f[0]=state ... f[13]=cutime f[14]=cstime (stat fields 16, 17)
+  [[ ${f[13]:-} =~ ^[0-9]+$ && ${f[14]:-} =~ ^[0-9]+$ ]] || return 0
+  CPU_USER_MS=$((f[13] * 1000 / hz))
+  CPU_SYS_MS=$((f[14] * 1000 / hz))
+}
+
 telemetry_end() {
   local rc=$1 status=$2 dur=$((END_MS - START_MS))
   fmt_ts "$END_MS"
@@ -683,6 +707,9 @@ telemetry_end() {
   jaddn duration_ms "$dur"
   jaddn start_ms "$START_MS"
   jaddn end_ms "$END_MS"
+  # CPU used by the job's process tree (the agent and every step), from rusage.
+  jaddn cpu_user_ms "$((CPU_USER_MS_END - CPU_USER_MS_START))"
+  jaddn cpu_sys_ms "$((CPU_SYS_MS_END - CPU_SYS_MS_START))"
   jadd agent_status "$status" 16
   emit job_end "$FRAG"
   state_end
@@ -770,6 +797,9 @@ main() {
 
   # Telemetry runs while the job already executes: no start-up delay.
   run_quiet telemetry_start
+  # Baseline after telemetry_start so its helper processes are not counted.
+  children_cpu_ms
+  CPU_USER_MS_START=$CPU_USER_MS CPU_SYS_MS_START=$CPU_SYS_MS
 
   local rc rc2 seen=$SIG_COUNT
   wait "$CHILD" 2>/dev/null
@@ -787,6 +817,8 @@ main() {
   done
   CHILD=""
   trap '' TERM INT HUP
+  children_cpu_ms
+  CPU_USER_MS_END=$CPU_USER_MS CPU_SYS_MS_END=$CPU_SYS_MS
 
   now_ms
   END_MS=$NOW_MS

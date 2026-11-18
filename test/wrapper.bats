@@ -620,3 +620,10 @@ YAML
   run jq -e 'select(.event=="job_start") | .workflow_url == "https://cci.example.com/workflow/wf-1" and .pipeline_url == "https://cci.example.com/pipeline/pl-1"' "$CCI_JOBLOG_FILE"
   [ "$status" -eq 0 ]
 }
+
+@test "job_end records the job's CPU time, trace_id and cgroup" {
+  CIRCLE_PIPELINE_ID=af6b6ad1-44c5-4235-a989-73e7d5bd43ea run "$WRAPPER" sh -c 'i=0; while [ $i -lt 300000 ]; do i=$((i+1)); done'
+  [ "$status" -eq 0 ]
+  run jq -e 'select(.event=="job_end") | (.cpu_user_ms + .cpu_sys_ms) > 50 and .trace_id == "af6b6ad144c54235a98973e7d5bd43ea" and (.cgroup | type == "string")' "$CCI_JOBLOG_FILE"
+  [ "$status" -eq 0 ]
+}
