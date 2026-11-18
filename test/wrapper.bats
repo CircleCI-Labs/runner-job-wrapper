@@ -613,3 +613,10 @@ YAML
   run jq -e 'select(.event=="job_end") | (.end_ms - .start_ms) == .duration_ms and .duration_ms >= 150' "$CCI_JOBLOG_FILE"
   [ "$status" -eq 0 ]
 }
+
+@test "events carry workflow_url and pipeline_url (app base overridable)" {
+  CIRCLE_WORKFLOW_ID=wf-1 CIRCLE_PIPELINE_ID=pl-1 CCI_JOBLOG_APP_URL=https://cci.example.com/ run "$WRAPPER" true
+  [ "$status" -eq 0 ]
+  run jq -e 'select(.event=="job_start") | .workflow_url == "https://cci.example.com/workflow/wf-1" and .pipeline_url == "https://cci.example.com/pipeline/pl-1"' "$CCI_JOBLOG_FILE"
+  [ "$status" -eq 0 ]
+}

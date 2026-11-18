@@ -29,7 +29,7 @@ MAX_LINE_BYTES=3800
 NEG_CACHE_TTL=300
 
 # Keys that CCI_JOBLOG_EXTRA_FIELDS may not override.
-RESERVED_KEYS=" schema event ts job_id job_name job_number workflow_id pipeline_id pipeline_number project org branch sha build_url node_index pr_number hostname instance_id instance_type availability_zone region private_ip ami_id runner_name resource_class wrapper_pid agent_pid agent_exit_code duration_ms start_ms end_ms agent_status org_id project_id truncated state updated_at "
+RESERVED_KEYS=" schema event ts job_id job_name job_number workflow_id pipeline_id pipeline_number project org branch sha build_url workflow_url pipeline_url node_index pr_number hostname instance_id instance_type availability_zone region private_ip ami_id runner_name resource_class wrapper_pid agent_pid agent_exit_code duration_ms start_ms end_ms agent_status org_id project_id truncated state updated_at "
 
 dbg() {
   if [[ -n ${CCI_JOBLOG_DEBUG:-} ]]; then
@@ -458,6 +458,13 @@ build_common() {
   jadd sha "$REPLY" 64
   first_env CIRCLE_BUILD_URL
   jadd build_url "$REPLY" 256
+  # Clickable links for any backend. CircleCI's /workflow/<id> and
+  # /pipeline/<id> URLs redirect to the right page; set CCI_JOBLOG_APP_URL for
+  # CircleCI Server.
+  local app=${CCI_JOBLOG_APP_URL:-https://app.circleci.com} wf=${CIRCLE_WORKFLOW_ID:-} pl=${CIRCLE_PIPELINE_ID:-}
+  app=${app%/}
+  if [[ -n $wf ]]; then jadd workflow_url "$app/workflow/$wf" 256; else jadd workflow_url "" 1; fi
+  if [[ -n $pl ]]; then jadd pipeline_url "$app/pipeline/$pl" 256; else jadd pipeline_url "" 1; fi
   first_env CIRCLE_NODE_INDEX
   jadd node_index "$REPLY" 16
   first_env CIRCLE_PR_NUMBER
@@ -594,6 +601,8 @@ prom_write() {
     if [[ ${CCI_JOBLOG_PROM_JOB_ID:-0} == 1 ]]; then
       prom_escape "${CIRCLE_WORKFLOW_JOB_ID:-}"
       labels+=",job_id=\"$REPLY\""
+      prom_escape "${CIRCLE_WORKFLOW_ID:-}"
+      labels+=",workflow_id=\"$REPLY\""
     fi
   fi
   {

@@ -273,7 +273,7 @@
       "type": "prometheus",
       "uid": "grafanacloud-prom"
      },
-     "expr": "max by (runner, instance_id, resource_class, job_name, project, job_id) (circleci_runner_busy{instance_id=~\"$instance\", instance_id!=\"\"})",
+     "expr": "max by (runner, instance_id, resource_class, job_name, project, job_id, workflow_id) (circleci_runner_busy{instance_id=~\"$instance\", instance_id!=\"\"})",
      "legendFormat": "",
      "refId": "A",
      "instant": true,
@@ -285,7 +285,7 @@
       "type": "prometheus",
       "uid": "grafanacloud-prom"
      },
-     "expr": "time() - max by (runner, instance_id, resource_class, job_name, project, job_id) (circleci_runner_job_start_time_seconds{instance_id=~\"$instance\", instance_id!=\"\"})",
+     "expr": "time() - max by (runner, instance_id, resource_class, job_name, project, job_id, workflow_id) (circleci_runner_job_start_time_seconds{instance_id=~\"$instance\", instance_id!=\"\"})",
      "legendFormat": "",
      "refId": "B",
      "instant": true,
@@ -316,7 +316,8 @@
        "running for": 4,
        "project": 5,
        "resource_class": 6,
-       "job_id": 7
+       "job_id": 7,
+       "workflow_id": 8
       }
      }
     }
@@ -371,6 +372,24 @@
      {
       "matcher": {
        "id": "byName",
+       "options": "job_name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open running job in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
        "options": "job_id"
       },
       "properties": [
@@ -378,8 +397,32 @@
         "id": "links",
         "value": [
          {
+          "title": "Open running job in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__value.raw}",
+          "targetBlank": true
+         },
+         {
           "title": "Drill into this job",
-          "url": "/d/cci-runner-fleet/circleci-runner-fleet?var-job_id=${__value.raw}&from=now-1h&to=now"
+          "url": "/d/cci-runner-fleet/circleci-runner-fleet?var-job_id=${__value.raw}&from=now-3h&to=now",
+          "targetBlank": false
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "workflow_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open workflow in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__value.raw}",
+          "targetBlank": true
          }
         ]
        }
@@ -691,7 +734,7 @@
       "uid": "grafanacloud-traces"
      },
      "queryType": "traceql",
-     "query": "{ name =~ \"Job:.*\" } | select(span.com.circleci.job.id, span.com.circleci.job.name, span.com.circleci.job.status, span.com.circleci.resource.class)",
+     "query": "{ name =~ \"Job:.*\" } | select(span.com.circleci.job.id, span.com.circleci.job.name, span.com.circleci.job.status, span.com.circleci.resource.class, span.com.circleci.workflow.id)",
      "refId": "A",
      "limit": 100,
      "spss": 50,
@@ -718,6 +761,7 @@
        "com.circleci.job.name": "job_name",
        "com.circleci.job.status": "job result",
        "com.circleci.resource.class": "resource_class",
+       "com.circleci.workflow.id": "workflow_id",
        "com.circleci.workflow.name": "workflow",
        "com.circleci.task.result": "step result",
        "name": "span"
@@ -758,6 +802,47 @@
         "value": {
          "type": "color-text"
         }
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "job_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open job in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__value.raw}",
+          "targetBlank": true
+         },
+         {
+          "title": "Drill into this job",
+          "url": "/d/cci-runner-fleet/circleci-runner-fleet?var-job_id=${__value.raw}&from=now-3h&to=now",
+          "targetBlank": false
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "workflow_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open workflow in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__value.raw}",
+          "targetBlank": true
+         }
+        ]
        }
       ]
      }
@@ -1008,7 +1093,13 @@
         "value": [
          {
           "title": "Drill into this job",
-          "url": "/d/cci-runner-fleet/circleci-runner-fleet?var-job_id=${__value.raw}&from=now-1h&to=now"
+          "url": "/d/cci-runner-fleet/circleci-runner-fleet?var-job_id=${__value.raw}&from=now-3h&to=now",
+          "targetBlank": false
+         },
+         {
+          "title": "Open job in CircleCI",
+          "url": "${__data.fields.build_uri}",
+          "targetBlank": true
          }
         ]
        }
@@ -1091,9 +1182,9 @@
        "region": true,
        "org": true,
        "agent_exit_code": true,
-       "workflow_id": true,
-       "pipeline_id": true,
-       "job_number": true
+       "job_number": true,
+       "workflow_url": true,
+       "pipeline_url": true
       }
      }
     }
@@ -1132,6 +1223,84 @@
           "targetBlank": true
          }
         ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "job_name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open job in CircleCI",
+          "url": "${__data.fields.build_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "workflow_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open workflow in CircleCI",
+          "url": "${__data.fields.workflow_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "pipeline_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open pipeline in CircleCI",
+          "url": "${__data.fields.pipeline_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "workflow_url"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "pipeline_url"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
        }
       ]
      },
@@ -1244,7 +1413,11 @@
         "availability_zone",
         "resource_class",
         "duration_ms",
-        "agent_status"
+        "agent_status",
+        "workflow_id",
+        "build_url",
+        "workflow_url",
+        "pipeline_url"
        ]
       }
      }
@@ -1262,6 +1435,59 @@
        {
         "id": "unit",
         "value": "ms"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "job_name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open job in CircleCI",
+          "url": "${__data.fields.build_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "workflow_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open workflow in CircleCI",
+          "url": "${__data.fields.workflow_url}",
+          "targetBlank": true
+         },
+         {
+          "title": "Open pipeline in CircleCI",
+          "url": "${__data.fields.pipeline_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byRegexp",
+       "options": "build_url|workflow_url|pipeline_url"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
        }
       ]
      }
@@ -1289,7 +1515,7 @@
       "uid": "grafanacloud-traces"
      },
      "queryType": "traceql",
-     "query": "{ name =~ \"Job:.*\" && span.com.circleci.job.id = \"$job_id\" } | select(span.com.circleci.job.name, span.com.circleci.job.status, span.com.circleci.resource.class, span.com.circleci.workflow.name)",
+     "query": "{ name =~ \"Job:.*\" && span.com.circleci.job.id = \"$job_id\" } | select(span.com.circleci.job.name, span.com.circleci.job.status, span.com.circleci.resource.class, span.com.circleci.workflow.name, span.com.circleci.workflow.id)",
      "refId": "A",
      "limit": 200,
      "spss": 50,
@@ -1316,6 +1542,7 @@
        "com.circleci.job.name": "job_name",
        "com.circleci.job.status": "job result",
        "com.circleci.resource.class": "resource_class",
+       "com.circleci.workflow.id": "workflow_id",
        "com.circleci.workflow.name": "workflow",
        "com.circleci.task.result": "step result",
        "name": "span"
@@ -1323,6 +1550,65 @@
      }
     }
    ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "job_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open job in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__value.raw}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "job_name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open job in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "workflow_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open workflow in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__value.raw}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
    "id": 24,
    "gridPos": {
     "h": 6,
@@ -1345,7 +1631,7 @@
       "uid": "grafanacloud-traces"
      },
      "queryType": "traceql",
-     "query": "{ name =~ \"Step:.*\" && span.com.circleci.job.id = \"$job_id\" } | select(span.com.circleci.task.result)",
+     "query": "{ name =~ \"Step:.*\" && span.com.circleci.job.id = \"$job_id\" } | select(span.com.circleci.task.result, span.com.circleci.workflow.id)",
      "refId": "A",
      "limit": 200,
      "spss": 50,
@@ -1372,6 +1658,7 @@
        "com.circleci.job.name": "job_name",
        "com.circleci.job.status": "job result",
        "com.circleci.resource.class": "resource_class",
+       "com.circleci.workflow.id": "workflow_id",
        "com.circleci.workflow.name": "workflow",
        "com.circleci.task.result": "step result",
        "name": "span"
@@ -1391,6 +1678,24 @@
        {
         "id": "unit",
         "value": "ns"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "job_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open job in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__value.raw}",
+          "targetBlank": true
+         }
+        ]
        }
       ]
      }
