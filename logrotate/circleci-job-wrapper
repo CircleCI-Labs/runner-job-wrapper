@@ -1,0 +1,24 @@
+# Rotation for the job wrapper JSONL log.
+#
+# copytruncate (not create) on purpose:
+#  * The wrapper opens the file with O_APPEND for every event, so truncating
+#    in place is safe for any number of concurrent appenders: their next write
+#    lands at the new end of file. At worst the few lines written between
+#    logrotate's copy and truncate are lost.
+#  * `create` would make logrotate own the new file (root, by default). Runner
+#    accounts could then no longer append and every event would be dropped
+#    silently, because the wrapper never fails a job over logging. If you
+#    prefer lossless rotation, use `create 0664 <runner-user> <runner-group>`
+#    instead of copytruncate (and make sure that account exists).
+#  * Log shippers (Grafana Alloy, Datadog Agent) follow both inode rotation and
+#    truncation.
+/var/log/circleci-job-wrapper/jobs.jsonl {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    dateext
+}

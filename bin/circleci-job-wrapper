@@ -1,0 +1,734 @@
+#!/usr/bin/env bash
+# circleci-job-wrapper - generic job wrapper for CircleCI machine runner's
+# `command_prefix` setting.
+#
+# The runner execs:  <prefix...> <task-agent-path> <agent args...>
+# so this script receives the real task-agent command as "$@", runs it as a
+# child, and records best-effort job_start / job_end telemetry (JSONL file,
+# optional HTTP sink, per-runner "current job" state file).
+#
+# Hard rules (see README.md):
+#   * never break or slow a job; every telemetry failure is swallowed
+#   * the child's exit status is returned exactly
+#   * never read or redirect the child's stdin (the task token arrives there);
+#     every helper command runs with
+#   * silent on stdout/stderr unless CCI_JOBLOG_DEBUG is set
+#   * allow-list only: the environment is never dumped, the agent's
+#     command line is never logged, the runner auth token is never read
+#
+# SPDX-License-Identifier: MIT
+# Copyright (c) CircleCI
+
+# shellcheck disable=SC2329  # functions are invoked indirectly via run_quiet and traps
+CCI_WRAPPER_VERSION="0.1.0"
+SCHEMA_VERSION=1
+HOST_instance_id="" HOST_instance_type="" HOST_availability_zone="" HOST_region="" HOST_private_ip="" HOST_ami_id=""
+# Events are written with one append; keep them well below 4 KiB so the
+# write stays atomic when several runner agents share the file.
+MAX_LINE_BYTES=3800
+NEG_CACHE_TTL=300
+
+# Keys that CCI_JOBLOG_EXTRA_FIELDS may not override.
+RESERVED_KEYS=" schema event ts job_id job_name job_number workflow_id pipeline_id pipeline_number project org branch sha build_url node_index pr_number hostname instance_id instance_type availability_zone region private_ip ami_id runner_name resource_class wrapper_pid agent_pid exit_code duration_ms status truncated state updated_at "
+
+dbg() {
+  if [[ -n ${CCI_JOBLOG_DEBUG:-} ]]; then
+    printf 'circleci-job-wrapper: %s\n' "$*" >&2
+  fi
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# Time helpers (no forks on bash >= 5)
+# ---------------------------------------------------------------------------
+
+# Sets NOW_MS to the current epoch time in milliseconds.
+now_ms() {
+  local t
+  if [[ -n ${EPOCHREALTIME:-} ]]; then
+    t=${EPOCHREALTIME/[.,]/}
+    NOW_MS=$((t / 1000))
+    return 0
+  fi
+  t=$(date +%s%3N 2>/dev/null </dev/null)
+  if [[ $t =~ ^[0-9]{13,}$ ]]; then
+    NOW_MS=$t
+  else
+    t=$(date +%s 2>/dev/null </dev/null)
+    NOW_MS=$((${t:-0} * 1000))
+  fi
+}
+
+# Sets TS to an RFC3339 UTC timestamp with milliseconds for epoch-ms $1.
+# Pure arithmetic (civil-from-days), so it needs no fork and ignores TZ.
+fmt_ts() {
+  local ms=$1 secs frac days rem z era doe yoe yr doy mp dd mo hh mi ss
+  secs=$((ms / 1000))
+  frac=$((ms % 1000))
+  days=$((secs / 86400))
+  rem=$((secs % 86400))
+  hh=$((rem / 3600))
+  mi=$(((rem % 3600) / 60))
+  ss=$((rem % 60))
+  z=$((days + 719468))
+  era=$((z / 146097))
+  doe=$((z - era * 146097))
+  yoe=$(((doe - doe / 1460 + doe / 36524 - doe / 146096) / 365))
+  yr=$((yoe + era * 400))
+  doy=$((doe - (365 * yoe + yoe / 4 - yoe / 100)))
+  mp=$(((5 * doy + 2) / 153))
+  dd=$((doy - (153 * mp + 2) / 5 + 1))
+  if ((mp < 10)); then mo=$((mp + 3)); else mo=$((mp - 9)); fi
+  if ((mo <= 2)); then yr=$((yr + 1)); fi
+  printf -v TS '%04d-%02d-%02dT%02d:%02d:%02d.%03dZ' "$yr" "$mo" "$dd" "$hh" "$mi" "$ss" "$frac"
+}
+
+# ---------------------------------------------------------------------------
+# JSON helpers
+# ---------------------------------------------------------------------------
+
+# json_escape STRING [MAXBYTES]
+# Sets JSON_ESC to STRING escaped for use inside a JSON string literal.
+# Handles quotes, backslashes and all control characters; UTF-8 passes through.
+# Values longer than MAXBYTES (default 256) are cut, never inside a UTF-8
+# sequence.
+json_escape() {
+  local LC_ALL=C
+  local s=$1 max=${2:-256} i ch esc
+  if ((${#s} > max)); then
+    s=${s:0:max}
+    # Drop a trailing, incomplete multi-byte sequence left by the byte cut.
+    if [[ $s =~ ([$'\xC2'-$'\xDF']|[$'\xE0'-$'\xEF'][$'\x80'-$'\xBF']?|[$'\xF0'-$'\xF4'][$'\x80'-$'\xBF']{0,2})$ ]]; then
+      s=${s%"${BASH_REMATCH[0]}"}
+    fi
+  fi
+  if [[ $s =~ ^[A-Za-z0-9._:/@+=\ -]*$ ]]; then
+    JSON_ESC=$s
+    return 0
+  fi
+  s=${s//\\/\\\\}
+  s=${s//\"/\\\"}
+  s=${s//$'\n'/\\n}
+  s=${s//$'\t'/\\t}
+  s=${s//$'\r'/\\r}
+  s=${s//$'\b'/\\b}
+  s=${s//$'\f'/\\f}
+  if [[ $s == *[$'\001'-$'\037']* ]]; then
+    for ((i = 1; i < 32; i++)); do
+      printf -v ch '%b' "\\0$((i / 64))$(((i / 8) % 8))$((i % 8))"
+      if [[ $s == *"$ch"* ]]; then
+        printf -v esc '\\u%04x' "$i"
+        s=${s//"$ch"/$esc}
+      fi
+    done
+  fi
+  JSON_ESC=$s
+}
+
+# jadd KEY VALUE [MAXBYTES]: append ,"KEY":"VALUE" to FRAG.
+jadd() {
+  json_escape "$2" "${3:-256}"
+  FRAG+=",\"$1\":\"$JSON_ESC\""
+}
+
+# jaddn KEY VALUE: append ,"KEY":N (non-numeric values become 0).
+jaddn() {
+  local v=$2
+  [[ $v =~ ^[0-9]+$ ]] || v=0
+  FRAG+=",\"$1\":$v"
+}
+
+# ---------------------------------------------------------------------------
+# key=value parsing (parse, never source)
+# ---------------------------------------------------------------------------
+
+declare -gA KV=()
+
+# kv_parse FILE: fill KV from KEY=VALUE lines. Comments (#), blank lines and
+# an optional leading `export ` are ignored; one level of quotes is stripped.
+kv_parse() {
+  KV=()
+  [[ -r $1 ]] || return 1
+  local line key val
+  while IFS= read -r line || [[ -n $line ]]; do
+    line=${line#"${line%%[![:space:]]*}"}
+    [[ -z $line || $line == \#* ]] && continue
+    line=${line#export }
+    [[ $line == *=* ]] || continue
+    key=${line%%=*}
+    val=${line#*=}
+    key=${key%"${key##*[![:space:]]}"}
+    [[ $key =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+    val=${val#"${val%%[![:space:]]*}"}
+    val=${val%"${val##*[![:space:]]}"}
+    if [[ $val =~ ^\"(.*)\"$ ]] || [[ $val =~ ^\'(.*)\'$ ]]; then
+      val=${BASH_REMATCH[1]}
+    fi
+    KV[$key]=$val
+  done <"$1" 2>/dev/null
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# Runner name / resource class
+# ---------------------------------------------------------------------------
+
+# runner_config_from_parent: print the --config/-c argument of the parent
+# process (the runner), when it can be read. Only that one argument is kept.
+runner_config_from_parent() {
+  local f="/proc/$PPID/cmdline" arg prev=""
+  [[ -r $f ]] || return 1
+  while IFS= read -r -d '' arg; do
+    if [[ $prev == -c || $prev == --config || $prev == -config ]]; then
+      printf '%s' "$arg"
+      return 0
+    fi
+    case $arg in
+      --config=* | -config=*)
+        printf '%s' "${arg#*=}"
+        return 0
+        ;;
+    esac
+    prev=$arg
+  done <"$f" 2>/dev/null
+  return 1
+}
+
+# read_runner_name CONFIG: sets RUNNER_NAME from the `name:` key directly
+# under the top-level `runner:` key. Every other line, including the auth
+# token line, is discarded unread by the logic below and never stored.
+read_runner_name() {
+  local cfg=$1 line in_runner=0 indent="" cur val
+  [[ -r $cfg ]] || return 1
+  while IFS= read -r line || [[ -n $line ]]; do
+    if [[ -z ${line//[[:space:]]/} || $line =~ ^[[:space:]]*# ]]; then
+      continue
+    fi
+    if [[ $line =~ ^runner:[[:space:]]*(#.*)?$ ]]; then
+      in_runner=1
+      indent=""
+      continue
+    fi
+    if [[ $line =~ ^[^[:space:]] ]]; then
+      in_runner=0
+      continue
+    fi
+    ((in_runner)) || continue
+    [[ $line =~ ^([[:space:]]+) ]] && cur=${BASH_REMATCH[1]}
+    [[ -z $indent ]] && indent=$cur
+    [[ $cur == "$indent" ]] || continue
+    if [[ $line =~ ^[[:space:]]+name:[[:space:]]*(.*)$ ]]; then
+      val=${BASH_REMATCH[1]}
+      if [[ $val =~ ^\"([^\"]*)\" ]] || [[ $val =~ ^\'([^\']*)\' ]]; then
+        val=${BASH_REMATCH[1]}
+      else
+        val=${val%%[[:space:]]#*}
+        val=${val%"${val##*[![:space:]]}"}
+      fi
+      RUNNER_NAME=$val
+      return 0
+    fi
+  done <"$cfg" 2>/dev/null
+  return 1
+}
+
+resolve_runner_and_class() {
+  RUNNER_NAME=${CCI_RUNNER_NAME:-}
+  RESOURCE_CLASS=${CCI_RESOURCE_CLASS:-}
+  EXTRA_FIELDS=${CCI_JOBLOG_EXTRA_FIELDS:-}
+
+  local conf=${CCI_JOBLOG_CONF:-/etc/circleci-job-wrapper/wrapper.env}
+  if [[ -z $RUNNER_NAME || -z $RESOURCE_CLASS || -z $EXTRA_FIELDS ]]; then
+    if kv_parse "$conf"; then
+      [[ -z $RUNNER_NAME ]] && RUNNER_NAME=${KV[CCI_RUNNER_NAME]:-}
+      [[ -z $RESOURCE_CLASS ]] && RESOURCE_CLASS=${KV[CCI_RESOURCE_CLASS]:-}
+      [[ -z $EXTRA_FIELDS ]] && EXTRA_FIELDS=${KV[CCI_JOBLOG_EXTRA_FIELDS]:-}
+    fi
+    KV=()
+  fi
+
+  if [[ -z $RUNNER_NAME ]]; then
+    local cfg=${CCI_RUNNER_CONFIG:-}
+    [[ -z $cfg ]] && cfg=$(runner_config_from_parent)
+    [[ -r $cfg ]] || cfg=/etc/circleci-runner/circleci-runner-config.yaml
+    read_runner_name "$cfg"
+  fi
+
+  # HOOK: if a CIRCLE_* built-in turns out to carry the resource class, name
+  # it here. It is only consulted when neither CCI_RESOURCE_CLASS nor the
+  # operator file provided one.
+  if [[ -z $RESOURCE_CLASS ]]; then
+    first_env CIRCLE_RESOURCE_CLASS && RESOURCE_CLASS=$REPLY
+  fi
+}
+
+# first_env VAR...: REPLY is the value of the first non-empty variable.
+first_env() {
+  local v
+  REPLY=""
+  for v in "$@"; do
+    if [[ -n ${!v:-} ]]; then
+      REPLY=${!v}
+      return 0
+    fi
+  done
+  return 1
+}
+
+# ---------------------------------------------------------------------------
+# Host identity: cache first, then EC2 IMDS
+# ---------------------------------------------------------------------------
+
+HOST_KEYS=(instance_id instance_type availability_zone region private_ip ami_id)
+
+read_boot_id() {
+  BOOT_ID=""
+  [[ -r /proc/sys/kernel/random/boot_id ]] || return 0
+  read -r BOOT_ID </proc/sys/kernel/random/boot_id 2>/dev/null
+  return 0
+}
+
+host_clear() {
+  local k
+  for k in "${HOST_KEYS[@]}"; do printf -v "HOST_$k" '%s' ""; done
+}
+
+# load_host_cache: fill HOST_* from the cache file; fail on miss/stale.
+load_host_cache() {
+  local cache=${CCI_JOBLOG_HOST_CACHE:-/run/circleci-job-wrapper/host.env}
+  local k now
+  kv_parse "$cache" || return 1
+  read_boot_id
+  if [[ -n $BOOT_ID && -n ${KV[boot_id]:-} && ${KV[boot_id]} != "$BOOT_ID" ]]; then
+    KV=()
+    return 1
+  fi
+  if [[ ${KV[ec2]:-yes} == no ]]; then
+    now=${EPOCHSECONDS:-$(date +%s </dev/null)}
+    if ! [[ ${KV[cached_at]:-} =~ ^[0-9]+$ ]] || ((now - KV[cached_at] >= NEG_CACHE_TTL)); then
+      KV=()
+      return 1
+    fi
+  fi
+  for k in "${HOST_KEYS[@]}"; do printf -v "HOST_$k" '%s' "${KV[$k]:-}"; done
+  KV=()
+  return 0
+}
+
+# imds_get URL [TOKEN]: print the body or fail. Short timeouts, no proxy,
+# stdin is /dev/null.
+imds_get() {
+  if [[ -n ${2:-} ]]; then
+    curl -sf --noproxy '*' --connect-timeout 0.3 --max-time "${IMDS_MAX_TIME:-1}" \
+      -H "X-aws-ec2-metadata-token: $2" "$1" </dev/null 2>/dev/null
+  else
+    curl -sf --noproxy '*' --connect-timeout 0.3 --max-time "${IMDS_MAX_TIME:-1}" \
+      "$1" </dev/null 2>/dev/null
+  fi
+}
+
+# fetch_imds: fill HOST_* from the instance identity document (one request).
+# IMDSv2 first; IMDSv1 only if v2 yields nothing.
+fetch_imds() {
+  command -v curl >/dev/null 2>&1 || return 1
+  local base=${CCI_JOBLOG_IMDS_URL:-http://169.254.169.254}
+  local doc="" tok="" path=/latest/dynamic/instance-identity/document
+  tok=$(curl -sf --noproxy '*' --connect-timeout 0.3 --max-time "${IMDS_MAX_TIME:-1}" \
+    -X PUT -H 'X-aws-ec2-metadata-token-ttl-seconds: 60' \
+    "$base/latest/api/token" </dev/null 2>/dev/null)
+  if [[ -n $tok ]]; then
+    doc=$(imds_get "$base$path" "$tok")
+  fi
+  if [[ -z $doc ]]; then
+    dbg "IMDSv2 unavailable, trying IMDSv1"
+    doc=$(imds_get "$base$path")
+  fi
+  tok=""
+  [[ $doc == *instanceId* ]] || return 1
+  imds_field() {
+    if [[ $doc =~ \"$1\"[[:space:]]*:[[:space:]]*\"([^\"]*)\" ]]; then
+      printf -v "HOST_$2" '%s' "${BASH_REMATCH[1]}"
+    fi
+  }
+  host_clear
+  imds_field instanceId instance_id
+  imds_field instanceType instance_type
+  imds_field availabilityZone availability_zone
+  imds_field region region
+  imds_field privateIp private_ip
+  imds_field imageId ami_id
+  unset -f imds_field
+  [[ -n $HOST_instance_id ]]
+}
+
+# write_host_cache ec2(yes|no): atomic tmp + mv; failures ignored.
+write_host_cache() {
+  local cache=${CCI_JOBLOG_HOST_CACHE:-/run/circleci-job-wrapper/host.env}
+  local dir=${cache%/*} tmp k now v
+  [[ $dir == "$cache" ]] && dir=.
+  [[ -d $dir ]] || mkdir -p "$dir" 2>/dev/null
+  tmp="$dir/.${cache##*/}.$$.tmp"
+  read_boot_id
+  now=${EPOCHSECONDS:-$(date +%s </dev/null)}
+  {
+    printf '# written by circleci-job-wrapper %s\n' "$CCI_WRAPPER_VERSION"
+    printf 'ec2=%s\ncached_at=%s\nboot_id=%s\n' "$1" "$now" "$BOOT_ID"
+    for k in "${HOST_KEYS[@]}"; do
+      v=HOST_$k
+      printf '%s=%s\n' "$k" "${!v//[^A-Za-z0-9._:\/@+-]/}"
+    done
+  } >"$tmp" 2>/dev/null || {
+    rm -f "$tmp" 2>/dev/null
+    return 1
+  }
+  chmod 0644 "$tmp" 2>/dev/null
+  mv -f "$tmp" "$cache" 2>/dev/null || rm -f "$tmp" 2>/dev/null
+}
+
+resolve_host() {
+  host_clear
+  if load_host_cache; then
+    dbg "host identity from cache"
+    return 0
+  fi
+  if fetch_imds; then
+    dbg "host identity from IMDS"
+    write_host_cache yes
+  else
+    host_clear
+    dbg "no EC2 metadata"
+    write_host_cache no
+  fi
+  return 0
+}
+
+# --refresh-host-cache: forced refresh for a systemd oneshot at boot.
+refresh_host_cache() {
+  local attempt ok=1
+  IMDS_MAX_TIME=2
+  for attempt in 1 2 3; do
+    if fetch_imds; then
+      ok=0
+      break
+    fi
+    [[ $attempt -lt 3 ]] && sleep 1
+  done
+  if ((ok == 0)); then
+    write_host_cache yes
+    printf 'circleci-job-wrapper: host cache written (ec2 instance %s)\n' "$HOST_instance_id"
+  else
+    host_clear
+    write_host_cache no
+    printf 'circleci-job-wrapper: host cache written (no EC2 metadata)\n'
+  fi
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# Event construction and output
+# ---------------------------------------------------------------------------
+
+# build_common: sets COMMON, the field fragment shared by every event.
+build_common() {
+  FRAG=""
+  first_env CIRCLE_WORKFLOW_JOB_ID CIRCLE_JOB_ID
+  jadd job_id "$REPLY" 64
+  first_env CIRCLE_JOB CIRCLE_JOB_NAME
+  jadd job_name "$REPLY" 128
+  first_env CIRCLE_BUILD_NUM CIRCLE_JOB_NUMBER
+  jadd job_number "$REPLY" 32
+  first_env CIRCLE_WORKFLOW_ID
+  jadd workflow_id "$REPLY" 64
+  first_env CIRCLE_PIPELINE_ID
+  jadd pipeline_id "$REPLY" 64
+  first_env CIRCLE_PIPELINE_NUMBER
+  jadd pipeline_number "$REPLY" 32
+  first_env CIRCLE_PROJECT_REPONAME
+  jadd project "$REPLY" 128
+  first_env CIRCLE_PROJECT_USERNAME
+  jadd org "$REPLY" 128
+  first_env CIRCLE_BRANCH
+  jadd branch "$REPLY" 160
+  first_env CIRCLE_SHA1
+  jadd sha "$REPLY" 64
+  first_env CIRCLE_BUILD_URL
+  jadd build_url "$REPLY" 256
+  first_env CIRCLE_NODE_INDEX
+  jadd node_index "$REPLY" 16
+  first_env CIRCLE_PR_NUMBER
+  jadd pr_number "$REPLY" 32
+  jadd hostname "${HOSTNAME:-}" 128
+  jadd instance_id "$HOST_instance_id" 64
+  jadd instance_type "$HOST_instance_type" 64
+  jadd availability_zone "$HOST_availability_zone" 64
+  jadd region "$HOST_region" 64
+  jadd private_ip "$HOST_private_ip" 64
+  jadd ami_id "$HOST_ami_id" 64
+  jadd runner_name "$RUNNER_NAME" 128
+  jadd resource_class "$RESOURCE_CLASS" 128
+  jaddn wrapper_pid "$$"
+  jaddn agent_pid "${CHILD:-0}"
+  add_extra_fields
+  COMMON=$FRAG
+}
+
+# add_extra_fields: merge CCI_JOBLOG_EXTRA_FIELDS (k=v,k=v) as strings.
+# Reserved keys and secret-looking keys are skipped.
+add_extra_fields() {
+  [[ -n $EXTRA_FIELDS ]] || return 0
+  local -a pairs
+  local pair k v lk
+  IFS=, read -r -a pairs <<<"$EXTRA_FIELDS"
+  for pair in "${pairs[@]}"; do
+    [[ $pair == *=* ]] || continue
+    k=${pair%%=*}
+    v=${pair#*=}
+    k=${k#"${k%%[![:space:]]*}"}
+    k=${k%"${k##*[![:space:]]}"}
+    v=${v#"${v%%[![:space:]]*}"}
+    v=${v%"${v##*[![:space:]]}"}
+    k=${k//[^A-Za-z0-9_.-]/_}
+    [[ -n $k ]] || continue
+    lk=${k,,}
+    [[ $RESERVED_KEYS == *" $k "* ]] && continue
+    case $lk in *token* | *secret* | *passw* | *credential* | *auth* | *apikey* | *api_key*) continue ;; esac
+    jadd "$k" "$v" 128
+  done
+}
+
+# bytes_of STRING: sets N to the byte length.
+bytes_of() {
+  local LC_ALL=C
+  N=${#1}
+}
+
+# append_line LINE: single O_APPEND write; every failure is swallowed.
+append_line() {
+  local f=${CCI_JOBLOG_FILE:-/var/log/circleci-job-wrapper/jobs.jsonl}
+  local dir=${f%/*}
+  [[ $dir == "$f" ]] && dir=.
+  if [[ ! -d $dir ]]; then
+    mkdir -p "$dir" 2>/dev/null
+  fi
+  { printf '%s\n' "$1" >>"$f"; } 2>/dev/null
+  return 0
+}
+
+# emit EVENT [EXTRA_FRAGMENT]
+emit() {
+  local ev=$1 extra=${2:-} line
+  line="{\"schema\":$SCHEMA_VERSION,\"event\":\"$ev\",\"ts\":\"$TS\"$COMMON$extra}"
+  bytes_of "$line"
+  if ((N > MAX_LINE_BYTES)); then
+    FRAG=""
+    first_env CIRCLE_WORKFLOW_JOB_ID CIRCLE_JOB_ID
+    jadd job_id "$REPLY" 64
+    jadd hostname "${HOSTNAME:-}" 128
+    jaddn wrapper_pid "$$"
+    line="{\"schema\":$SCHEMA_VERSION,\"event\":\"$ev\",\"ts\":\"$TS\"$FRAG,\"truncated\":true$extra}"
+  fi
+  append_line "$line"
+  http_post "$line"
+}
+
+# http_post LINE: optional fire-and-forget POST, fully detached.
+http_post() {
+  [[ -n ${CCI_JOBLOG_HTTP_URL:-} ]] || return 0
+  command -v curl >/dev/null 2>&1 || return 0
+  local url=$CCI_JOBLOG_HTTP_URL hdr=${CCI_JOBLOG_HTTP_HEADER:-} body=$1
+  (
+    if [[ -n $hdr ]]; then
+      # Header comes via a here-string so a secret never shows in `ps`.
+      curl -s --max-time 2 --connect-timeout 1 --noproxy '' -X POST \
+        -H 'Content-Type: application/json' -H @- \
+        --data-binary "$body" "$url" <<<"$hdr"
+    else
+      curl -s --max-time 2 --connect-timeout 1 -X POST \
+        -H 'Content-Type: application/json' \
+        --data-binary "$body" "$url"
+    fi
+  ) >/dev/null 2>&1 </dev/null &
+  disown $! 2>/dev/null
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# State file
+# ---------------------------------------------------------------------------
+
+state_path() {
+  local dir=${CCI_JOBLOG_STATE_DIR:-/run/circleci-job-wrapper} name
+  name=${RUNNER_NAME:-pid-$PPID}
+  name=${name//[^A-Za-z0-9._-]/_}
+  name=${name##.}
+  [[ -n $name ]] || name=pid-$PPID
+  STATE_DIR=$dir
+  STATE_FILE="$dir/$name.json"
+}
+
+# state_write BODY: atomic tmp + mv.
+state_write() {
+  local tmp="$STATE_DIR/.${STATE_FILE##*/}.$$.tmp"
+  [[ -d $STATE_DIR ]] || mkdir -p "$STATE_DIR" 2>/dev/null
+  { printf '%s\n' "$1" >"$tmp"; } 2>/dev/null || return 0
+  mv -f "$tmp" "$STATE_FILE" 2>/dev/null || rm -f "$tmp" 2>/dev/null
+  return 0
+}
+
+state_start() {
+  state_write "{\"schema\":$SCHEMA_VERSION,\"state\":\"running\",\"updated_at\":\"$TS\"$COMMON}"
+}
+
+state_end() {
+  if [[ ${CCI_JOBLOG_STATE_ON_END:-remove} == idle ]]; then
+    FRAG=""
+    jadd runner_name "$RUNNER_NAME" 128
+    jadd hostname "${HOSTNAME:-}" 128
+    jadd resource_class "$RESOURCE_CLASS" 128
+    state_write "{\"schema\":$SCHEMA_VERSION,\"state\":\"idle\",\"updated_at\":\"$TS\"$FRAG}"
+  else
+    rm -f "$STATE_FILE" 2>/dev/null
+  fi
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# Telemetry phases
+# ---------------------------------------------------------------------------
+
+telemetry_start() {
+  fmt_ts "$START_MS"
+  resolve_host
+  resolve_runner_and_class
+  build_common
+  state_path
+  emit job_start
+  state_start
+}
+
+telemetry_end() {
+  local rc=$1 status=$2 dur=$((END_MS - START_MS))
+  fmt_ts "$END_MS"
+  FRAG=""
+  jaddn exit_code "$rc"
+  jaddn duration_ms "$dur"
+  jadd status "$status" 16
+  emit job_end "$FRAG"
+  state_end
+}
+
+# run_quiet CMD...: run a telemetry phase with stdin from /dev/null and
+# stderr silenced unless CCI_JOBLOG_DEBUG is set.
+run_quiet() {
+  if [[ -n ${CCI_JOBLOG_DEBUG:-} ]]; then
+    "$@"
+  else
+    "$@" </dev/null 2>/dev/null
+  fi
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# Signals
+# ---------------------------------------------------------------------------
+
+SIG_COUNT=0
+SIG_NAME=""
+CHILD=""
+
+on_signal() {
+  SIG_NAME=$1
+  SIG_COUNT=$((SIG_COUNT + 1))
+  if [[ -n $CHILD && ${CCI_JOBLOG_FORWARD_SIGNALS:-1} != 0 ]]; then
+    kill -s "$1" "$CHILD" 2>/dev/null
+  fi
+  return 0
+}
+
+usage() {
+  cat <<EOF
+circleci-job-wrapper $CCI_WRAPPER_VERSION
+usage: circleci-job-wrapper <task-agent> [args...]   (use as runner command_prefix)
+       circleci-job-wrapper --refresh-host-cache    (boot-time host identity cache)
+       circleci-job-wrapper --version
+EOF
+}
+
+main() {
+  case ${1:-} in
+    --refresh-host-cache)
+      refresh_host_cache
+      exit 0
+      ;;
+    --version)
+      printf '%s\n' "$CCI_WRAPPER_VERSION"
+      exit 0
+      ;;
+    --help | -h)
+      usage
+      exit 0
+      ;;
+  esac
+  if (($# == 0)); then
+    usage >&2
+    exit 2
+  fi
+  if [[ -n ${CCI_JOBLOG_DISABLE:-} ]]; then
+    exec "$@"
+  fi
+
+  now_ms
+  START_MS=$NOW_MS
+
+  trap 'on_signal TERM' TERM
+  trap 'on_signal INT' INT
+  trap 'on_signal HUP' HUP
+
+  # Run the agent as a child. `<&0` keeps the task-token stdin (background
+  # jobs would otherwise get /dev/null) and `trap - INT QUIT` undoes the
+  # SIGINT/SIGQUIT ignore that bash applies to non-interactive async jobs.
+  (
+    trap - INT QUIT
+    exec "$@"
+  ) <&0 &
+  CHILD=$!
+  if ((SIG_COUNT > 0)) && [[ ${CCI_JOBLOG_FORWARD_SIGNALS:-1} != 0 ]]; then
+    kill -s "$SIG_NAME" "$CHILD" 2>/dev/null
+  fi
+
+  # Telemetry runs while the job already executes: no start-up delay.
+  run_quiet telemetry_start
+
+  local rc rc2 seen=$SIG_COUNT
+  wait "$CHILD" 2>/dev/null
+  rc=$?
+  while ((SIG_COUNT != seen)); do
+    seen=$SIG_COUNT
+    # rc <= 128: the agent ended on its own, that is its real status.
+    ((rc > 128)) || break
+    # rc > 128 may only mean "wait was interrupted by our trap". Ask again;
+    # 127 means bash had already collected the child, so rc was its status.
+    wait "$CHILD" 2>/dev/null
+    rc2=$?
+    ((rc2 == 127)) && break
+    rc=$rc2
+  done
+  CHILD=""
+  trap '' TERM INT HUP
+
+  now_ms
+  END_MS=$NOW_MS
+  local status=failed
+  if ((SIG_COUNT > 0)); then
+    status=cancelled
+  elif ((rc == 0)); then
+    status=success
+  fi
+  run_quiet telemetry_end "$rc" "$status"
+  exit "$rc"
+}
+
+# Run only when executed; sourcing (tests) just defines the functions.
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  main "$@"
+fi

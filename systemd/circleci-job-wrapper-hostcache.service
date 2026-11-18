@@ -1,0 +1,37 @@
+# Fills the host identity cache (EC2 instance id, type, AZ, ...) once per boot
+# so that no job ever has to query the metadata service itself.
+#
+# Install: cp to /etc/systemd/system/ && systemctl enable --now circleci-job-wrapper-hostcache.service
+[Unit]
+Description=CircleCI job wrapper: refresh host identity cache
+After=network-online.target
+Wants=network-online.target
+# Start before the runner so the first job already finds the cache.
+Before=circleci-runner.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/circleci-job-wrapper --refresh-host-cache
+
+# /run/circleci-job-wrapper holds host.env (this unit) and the per-runner
+# "current job" state files (written by the runner user). 1777 = sticky and
+# world-writable, like /tmp: runner users cannot delete each other's files and
+# cannot replace the root-owned host.env. Tighten (e.g. 0775 + Group=) if all
+# runners share one account.
+RuntimeDirectory=circleci-job-wrapper
+RuntimeDirectoryMode=1777
+RuntimeDirectoryPreserve=yes
+
+# Directory for jobs.jsonl. The wrapper appends as the runner user, so make
+# the directory group-writable for it (set Group= in a drop-in or change the mode).
+LogsDirectory=circleci-job-wrapper
+LogsDirectoryMode=0775
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

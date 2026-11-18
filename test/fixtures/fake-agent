@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Stand-in for the CircleCI task agent. Behaviour is driven by FAKE_* env vars
+# so that nothing sensitive is ever put in its arguments by the harness.
+#   FAKE_STDIN_OUT  copy stdin to this file
+#   FAKE_ENV_OUT    write the names+values of selected env vars to this file
+#   FAKE_READY      touch this file when started
+#   FAKE_SLEEP      after FAKE_READY, exec `sleep N` (agent becomes sleep)
+#   FAKE_EXIT       exit status (default 0)
+#   FAKE_KILL9      kill -9 self
+[[ -n ${FAKE_STDIN_OUT:-} ]] && cat >"$FAKE_STDIN_OUT"
+if [[ -n ${FAKE_ENV_OUT:-} ]]; then
+  {
+    printf 'LC_ALL=%s\n' "${LC_ALL-<unset>}"
+    printf 'LANG=%s\n' "${LANG-<unset>}"
+    env | grep -E '^(HOST_|KV=|RUNNER_NAME|COMMON|FRAG|START_MS|CCI_WRAPPER_VERSION|SCHEMA_VERSION)' || true
+  } >"$FAKE_ENV_OUT"
+fi
+[[ -n ${FAKE_READY:-} ]] && : >"$FAKE_READY"
+[[ -n ${FAKE_KILL9:-} ]] && kill -9 $$
+[[ -n ${FAKE_SLEEP:-} ]] && exec sleep "$FAKE_SLEEP"
+exit "${FAKE_EXIT:-0}"
