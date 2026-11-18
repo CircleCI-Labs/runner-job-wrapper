@@ -1,0 +1,140 @@
+# Hugo configuration of the docs site. Build with site/build.sh: it writes the site to ../docs, which GitHub Pages serves.
+#
+# The GitHub Pages URL uses the repository name (runner-job-wrapper).
+# baseURL and the GitHub menu link below must match that name. GitHub redirects repository URLs after a rename,
+# but not the old Pages path.
+baseURL: https://circleci-labs.github.io/runner-job-wrapper/
+title: CircleCI runner job wrapper
+locale: en-US
+enableRobotsTXT: true
+publishDir: ../docs
+disableKinds:
+  - taxonomy
+  - term
+
+module:
+  hugoVersion:
+    extended: true
+    min: 0.146.0
+  imports:
+    - path: github.com/imfing/hextra
+
+markup:
+  highlight:
+    # Required by the theme (dark mode of code blocks).
+    noClasses: false
+
+menu:
+  main:
+    - identifier: documentation
+      name: Documentation
+      pageRef: /docs
+      weight: 1
+    - identifier: configuration
+      name: Configuration
+      pageRef: /docs/configuration
+      weight: 2
+    - identifier: faq
+      name: FAQ
+      pageRef: /docs/faq
+      weight: 3
+    - name: Search
+      weight: 4
+      params:
+        type: search
+    - name: Theme
+      weight: 5
+      params:
+        type: theme-toggle
+    - name: GitHub
+      weight: 6
+      url: https://github.com/CircleCI-Labs/runner-job-wrapper
+      params:
+        icon: github
+    # Styled as the call to action of the header (assets/css/custom.css).
+    - identifier: get-started
+      name: Get started
+      pageRef: /docs/install
+      weight: 7
+
+params:
+  description: A small bash command_prefix wrapper for CircleCI machine runner that records which job ran on which host, so you can join job data with host metrics and logs in any observability backend.
+  externalLinkDecoration: false
+  repo: https://github.com/CircleCI-Labs/runner-job-wrapper
+
+  # The landing page (layouts/home.html). The required and optional tables come from content/_index.md.
+  home:
+    title: CircleCI runner job wrapper
+    tagline: Which job ran on which host
+    lead: >-
+      A small bash wrapper for the CircleCI machine runner command_prefix. It records the host, runner agent and resource class
+      of every job, with the CircleCI job, workflow and pipeline IDs, so you can join CircleCI OpenTelemetry spans with host metrics and logs.
+    features:
+      - icon: server
+        title: Host identity on every job
+        text: EC2 instance, runner agent and resource class, next to the job, workflow and pipeline IDs and links.
+        link: docs/event-schema/
+        linkText: Event schema
+      - icon: layers
+        title: Joins CircleCI spans with host data
+        text: The job ID matches com.circleci.job.id on CircleCI spans, and the instance ID matches your host metrics.
+        link: docs/join-with-opentelemetry/
+        linkText: Join the data
+      - icon: shield-check
+        title: Never changes the job
+        text: The task agent runs as a normal child. Stdin, signals and the exit status pass through, and a logging failure never fails a job.
+        link: docs/how-it-works/
+        linkText: How it works
+      - icon: box
+        title: No dependencies
+        text: One bash script, no daemon and no jq. About 6 ms per job.
+        link: docs/install/
+        linkText: Install
+      - icon: refresh-cw
+        title: Any backend
+        text: JSONL on disk. Alloy example tested with Grafana Cloud, Datadog Agent documented, plus an example Grafana dashboard.
+        link: docs/ship-with-alloy/
+        linkText: Ship the data
+
+  banner:
+    # The banner cannot be dismissed: custom.css hides the close button, and custom/banner.html renders the text.
+    # A new key shows the banner again to visitors who closed an old one.
+    key: labs-disclaimer-pre-1-0
+    message: >-
+      **CircleCI Labs project, pre-release (0.x).** Not an official CircleCI product and not supported by CircleCI support.
+
+  navbar:
+    displayTitle: true
+    displayLogo: false
+    width: normal
+
+  theme:
+    default: system
+    # The toggle is in the header (menu item of type theme-toggle), not in the sidebar.
+    displayToggle: false
+
+  footer:
+    enable: true
+    displayCopyright: false
+    displayPoweredBy: false
+    width: normal
+
+  search:
+    enable: true
+    type: flexsearch
+    flexsearch:
+      index: content
+      tokenize: forward
+
+  highlight:
+    copy:
+      enable: true
+      display: always
+
+  page:
+    width: normal
+    contextMenu:
+      enable: false
+
+  toc:
+    displayTags: false
