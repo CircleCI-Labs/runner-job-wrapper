@@ -49,7 +49,7 @@ Only the first group is required.
 
 ## Quickstart
 
-**For the full path (wrapper, CircleCI OpenTelemetry export, Alloy and dashboards), follow [Set it up end to end](https://circleci-labs.github.io/runner-job-wrapper/docs/set-up-end-to-end/).** The steps below are the wrapper alone.
+**For the full path (wrapper, CircleCI OpenTelemetry export, Alloy and dashboards), follow [Set it up end to end](https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/set-up-end-to-end/).** The steps below are the wrapper alone.
 
 1. Install the wrapper and create the directories. The runner user must be able to write both.
 
@@ -84,27 +84,38 @@ Only the first group is required.
    tail -n2 /var/log/circleci-job-wrapper/jobs.jsonl
    ```
 
-Replace `circleci` with the account and group your runner runs as. [Install](https://circleci-labs.github.io/runner-job-wrapper/docs/install/) has log rotation and the multi-runner setup.
+Replace `circleci` with the account and group your runner runs as. [Install](https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/install/) has log rotation and the multi-runner setup.
 
 ## What you get
 
 ![The CircleCI runner fleet dashboard](site/static/images/fleet-dashboard.png)
 
-The fleet dashboard, with pipeline performance from CircleCI spans, the live fleet, host health and recent jobs. A [job-detail dashboard](https://circleci-labs.github.io/runner-job-wrapper/docs/example-dashboard/) joins one job's trace, steps, host and CPU.
+The fleet dashboard, with pipeline performance from CircleCI spans, the live fleet, host health and recent jobs. A [job-detail dashboard](https://circleci-labs.github.io/runner-job-wrapper/docs/dashboards/example-dashboard/) joins one job's trace, steps, host and CPU.
 
 ## How it fits together
 
-```text
- runner --command_prefix--> wrapper --child--> task agent (runs the job)
-                               |
-                               +--> jobs.jsonl --> shipper --> your backend
- job_id ----------+--> wrapper events ---+
-                  +--> CircleCI spans ---+--> one job: where, when, result, steps
-                  +--> task-agent log ---+
- instance_id -----+--> host metrics -----+--> what the host was doing meanwhile
+```mermaid
+flowchart LR
+  W["Job wrapper<br/>(runner command_prefix)"] -->|job events| L[("jobs.jsonl")]
+  T["Task agent"] -->|steps, result| J[("Runner journal")]
+  M["Host and runner<br/>metrics"]
+  L --> AL["Grafana Alloy"]
+  J --> AL
+  M --> AL
+  AL -->|OTLP| G[("Grafana Cloud")]
+  C["CircleCI<br/>OpenTelemetry export"] -->|spans| G
+  G --> D["Dashboards"]
 ```
 
-`agent_status` in the events describes the agent process, not the job result. Take the result from the CircleCI span (`com.circleci.job.status`). See [How it works](https://circleci-labs.github.io/runner-job-wrapper/docs/how-it-works/).
+```mermaid
+flowchart LR
+  WE["Wrapper events"] -->|job_id| ONE["One job: where it ran, when, result, steps, CPU and memory"]
+  SP["CircleCI spans"] -->|com.circleci.job.id| ONE
+  TA["Task agent log"] -->|job-id| ONE
+  HM["Host and runner metrics"] -->|instance_id, cgroup| ONE
+```
+
+`agent_status` in the events describes the agent process, not the job result. Take the result from the CircleCI span (`com.circleci.job.status`). See [How it works](https://circleci-labs.github.io/runner-job-wrapper/docs/reference/how-it-works/).
 
 ## What is tested
 
@@ -127,21 +138,21 @@ Read the docs at [circleci-labs.github.io/runner-job-wrapper](https://circleci-l
 
 | You want to | Read |
 |---|---|
-| Set it all up | [Set it up end to end](https://circleci-labs.github.io/runner-job-wrapper/docs/set-up-end-to-end/) |
-| Install the wrapper only | [Install](https://circleci-labs.github.io/runner-job-wrapper/docs/install/) |
-| Change a setting | [Configuration](https://circleci-labs.github.io/runner-job-wrapper/docs/configuration/) |
-| Know what is logged | [Event schema](https://circleci-labs.github.io/runner-job-wrapper/docs/event-schema/) |
-| Join it with CircleCI spans | [Join data with CircleCI OpenTelemetry](https://circleci-labs.github.io/runner-job-wrapper/docs/join-with-opentelemetry/) |
-| Ship the data | [Alloy](https://circleci-labs.github.io/runner-job-wrapper/docs/ship-with-alloy/), [Datadog Agent](https://circleci-labs.github.io/runner-job-wrapper/docs/ship-with-datadog/) |
-| See the dashboards | [Example Grafana dashboards](https://circleci-labs.github.io/runner-job-wrapper/docs/example-dashboard/) |
-| Judge the risk | [Security](https://circleci-labs.github.io/runner-job-wrapper/docs/security/) |
-| Fix a problem | [Troubleshooting](https://circleci-labs.github.io/runner-job-wrapper/docs/troubleshooting/), [FAQ](https://circleci-labs.github.io/runner-job-wrapper/docs/faq/) |
+| Set it all up | [Set it up end to end](https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/set-up-end-to-end/) |
+| Install the wrapper only | [Install](https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/install/) |
+| Change a setting | [Configuration](https://circleci-labs.github.io/runner-job-wrapper/docs/configure/configuration/) |
+| Know what is logged | [Event schema](https://circleci-labs.github.io/runner-job-wrapper/docs/reference/event-schema/) |
+| Join it with CircleCI spans | [Join data with CircleCI OpenTelemetry](https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/join-with-opentelemetry/) |
+| Ship the data | [Alloy](https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-alloy/), [Datadog Agent](https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-datadog/) |
+| See the dashboards | [Example Grafana dashboards](https://circleci-labs.github.io/runner-job-wrapper/docs/dashboards/example-dashboard/) |
+| Judge the risk | [Security](https://circleci-labs.github.io/runner-job-wrapper/docs/configure/security/) |
+| Fix a problem | [Troubleshooting](https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/), [FAQ](https://circleci-labs.github.io/runner-job-wrapper/docs/faq/) |
 
 ## Support
 
 This is a CircleCI Labs project: a solution that field engineers at CircleCI built with customers. It is **not** an official CircleCI product, and CircleCI support does not cover it. Field engineers handle issues on a best-effort basis, without an SLA.
 
-- Open a [GitHub issue](https://github.com/CircleCI-Labs/runner-job-wrapper/issues) for a bug or a feature request. Search [Troubleshooting](https://circleci-labs.github.io/runner-job-wrapper/docs/troubleshooting/) first.
+- Open a [GitHub issue](https://github.com/CircleCI-Labs/runner-job-wrapper/issues) for a bug or a feature request. Search [Troubleshooting](https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/) first.
 - Ask the community on [CircleCI Discuss](https://discuss.circleci.com/).
 - Problems with the CircleCI platform or the runner agent go to [CircleCI support](https://support.circleci.com/hc/en-us).
 - To report a security vulnerability, read [SECURITY.md](SECURITY.md).

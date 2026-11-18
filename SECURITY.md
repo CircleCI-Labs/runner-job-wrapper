@@ -12,4 +12,4 @@ Vulnerabilities in the CircleCI platform or the runner agent are not in scope he
 
 ## What to know about the design
 
-The wrapper reads an allow-list of `CIRCLE_*` variables and never the task token, the environment or the agent's arguments. The [Security page](https://circleci-labs.github.io/runner-job-wrapper/docs/security/) lists what it reads, writes and leaves to the operator.
+The wrapper reads an allow-list of `CIRCLE_*` variables and never the task token, the environment or the agent's arguments. The [Security page](https://circleci-labs.github.io/runner-job-wrapper/docs/configure/security/) lists what it reads, writes and leaves to the operator.

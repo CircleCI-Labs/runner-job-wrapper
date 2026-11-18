@@ -32,7 +32,7 @@ menu:
       weight: 1
     - identifier: configuration
       name: Configuration
-      pageRef: /docs/configuration
+      pageRef: /docs/configure/configuration
       weight: 2
     - identifier: faq
       name: FAQ
@@ -54,7 +54,7 @@ menu:
     # Styled as the call to action of the header (assets/css/custom.css).
     - identifier: get-started
       name: Get started
-      pageRef: /docs/set-up-end-to-end
+      pageRef: /docs/get-started
       weight: 7
 
 params:
@@ -125,6 +125,11 @@ params:
     flexsearch:
       index: content
       tokenize: forward
+
+
+  # Mermaid diagrams (```mermaid code blocks), same pinned version as the other CircleCI Labs sites.
+  mermaid:
+    base: https://cdn.jsdelivr.net/npm/mermaid@12.0.0/dist
 
   highlight:
     copy:

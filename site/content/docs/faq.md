@@ -1,6 +1,6 @@
 ---
 title: FAQ
-weight: 13
+weight: 7
 ---
 
 ## Does it change my jobs?
@@ -17,7 +17,7 @@ No. The wrapper writes `jobs.jsonl` with nothing else. The OpenTelemetry export,
 
 ## Is the agent_status the job result?
 
-No. See [How it works](../how-it-works/#agent_status-is-not-the-job-result). Take the result from the CircleCI span or the task-agent journal.
+No. See [How it works]({{< relref "/docs/reference/how-it-works.md#agent_status-is-not-the-job-result" >}}). Take the result from the CircleCI span or the task-agent journal.
 
 ## Does it work off EC2?
 

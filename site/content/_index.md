@@ -2,7 +2,7 @@
 title: CircleCI runner job wrapper
 ---
 
-**New here?** Follow [Set it up end to end](docs/set-up-end-to-end/): wrapper, CircleCI spans, shipper and dashboards, each stage with a check.
+**New here?** Follow [Set it up end to end]({{< relref "/docs/get-started/set-up-end-to-end.md" >}}): wrapper, CircleCI spans, shipper and dashboards, each stage with a check.
 
 ## What you need
 

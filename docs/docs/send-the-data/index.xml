@@ -1,0 +1,136 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>CircleCI runner job wrapper – Send the data</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/</link><description>Recent content in Send the data on CircleCI runner job wrapper</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><atom:link href="https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/index.xml" rel="self" type="application/rss+xml"/><item><title>Join data with CircleCI OpenTelemetry</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/join-with-opentelemetry/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/join-with-opentelemetry/</guid><description>
+&lt;p&gt;CircleCI&amp;rsquo;s own OpenTelemetry job, step and task spans carry &lt;code&gt;com.circleci.resource.class&lt;/code&gt; and &lt;code&gt;com.circleci.job.status&lt;/code&gt;, but no runner or host identity. They are sent when each job finishes. The wrapper and the host agents add the where and the live view. Everything joins on a few keys: &lt;code&gt;job_id&lt;/code&gt;, &lt;code&gt;trace_id&lt;/code&gt; (the pipeline ID without dashes, the trace ID of the spans), &lt;code&gt;instance_id&lt;/code&gt; and &lt;code&gt;cgroup&lt;/code&gt;. The &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/set-up-end-to-end/#4-turn-on-circlecis-opentelemetry-export"&gt;end-to-end guide&lt;/a&gt; shows how to turn the export on.&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Source&lt;/th&gt;
+&lt;th&gt;Carries&lt;/th&gt;
+&lt;th&gt;Join key&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;Wrapper events (&lt;code&gt;jobs.jsonl&lt;/code&gt;)&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;job_id&lt;/code&gt;, &lt;code&gt;workflow_id&lt;/code&gt;, &lt;code&gt;instance_id&lt;/code&gt;, &lt;code&gt;runner_name&lt;/code&gt;, &lt;code&gt;resource_class&lt;/code&gt;, start and end&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;job_id&lt;/code&gt; = &lt;code&gt;CIRCLE_WORKFLOW_JOB_ID&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;CircleCI spans (OTLP exporter)&lt;/td&gt;
+&lt;td&gt;Job result (&lt;code&gt;com.circleci.job.status&lt;/code&gt;), resource class, step spans and durations&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;com.circleci.job.id&lt;/code&gt; = &lt;code&gt;job_id&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Host metrics (Alloy unix exporter, textfile busy gauge)&lt;/td&gt;
+&lt;td&gt;CPU, memory, disk, network, busy or idle per runner&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;instance_id&lt;/code&gt; label&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;Task-agent journal (optional, experimental)&lt;/td&gt;
+&lt;td&gt;Step start and end, the job result as the host sees it, in near real time&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;job-id&lt;/code&gt; = &lt;code&gt;job_id&lt;/code&gt;, plus &lt;code&gt;instance_id&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;div class="cci-diagram"&gt;&lt;pre class="mermaid hx:mt-6"&gt;flowchart LR
+WE[&amp;#34;Wrapper events&amp;#34;] --&amp;gt;|job_id| ONE[&amp;#34;One job: where it ran, when, result, steps, CPU and memory&amp;#34;]
+SP[&amp;#34;CircleCI spans&amp;#34;] --&amp;gt;|com.circleci.job.id| ONE
+TA[&amp;#34;Task agent log&amp;#34;] --&amp;gt;|job-id| ONE
+HM[&amp;#34;Host and runner metrics&amp;#34;] --&amp;gt;|instance_id, cgroup| ONE&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;To receive the spans, add an exporter in the organization settings or with CircleCI&amp;rsquo;s exporter API (&lt;code&gt;POST /api/v2/otel/exporters&lt;/code&gt;). See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/set-up-end-to-end/#4-turn-on-circlecis-opentelemetry-export"&gt;Set it up end to end&lt;/a&gt; for the UI and API steps, and &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-alloy/#circleci-spans-to-grafana"&gt;Ship with Grafana Alloy&lt;/a&gt; for a worked example, and CircleCI&amp;rsquo;s documentation for the current API.&lt;/p&gt;</description></item><item><title>Ship with Grafana Alloy</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-alloy/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-alloy/</guid><description>
+&lt;p&gt;&lt;a href="https://github.com/CircleCI-Labs/runner-job-wrapper/blob/main/examples/alloy/config.alloy" target="_blank" rel="noopener"&gt;&lt;code&gt;examples/alloy/config.alloy&lt;/code&gt;&lt;/a&gt; ships the wrapper events, the optional task-agent journal lines and host metrics to any OTLP/HTTP endpoint. It is tested with Grafana Cloud. The &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/set-up-end-to-end/#5-install-and-configure-the-shipper"&gt;end-to-end guide&lt;/a&gt; walks through the install. Its blocks:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;File tail to Loki over OTLP.&lt;/strong&gt; &lt;code&gt;local.file_match&lt;/code&gt; and &lt;code&gt;loki.source.file&lt;/code&gt; tail &lt;code&gt;jobs.jsonl&lt;/code&gt;. &lt;code&gt;loki.process&lt;/code&gt; promotes &lt;code&gt;event&lt;/code&gt;, &lt;code&gt;resource_class&lt;/code&gt;, &lt;code&gt;runner&lt;/code&gt; and &lt;code&gt;instance_id&lt;/code&gt; to labels. Job and workflow IDs stay in the JSON body, queried with &lt;code&gt;| json&lt;/code&gt;. &lt;code&gt;otelcol.receiver.loki&lt;/code&gt; and &lt;code&gt;otelcol.processor.transform&lt;/code&gt; turn the stream into OTLP logs named &lt;code&gt;circleci-job-wrapper&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Journal pipeline (optional, experimental).&lt;/strong&gt; &lt;code&gt;loki.source.journal&lt;/code&gt; reads the runner units&amp;rsquo; journal. The task agent writes JSON lines there. &lt;code&gt;loki.process&lt;/code&gt; keeps only &lt;code&gt;Runner started execution&lt;/code&gt;, &lt;code&gt;step start&lt;/code&gt;, &lt;code&gt;step end&lt;/code&gt; and &lt;code&gt;Reporting task end.&lt;/code&gt; (each has a &lt;code&gt;job-id&lt;/code&gt;) and labels them &lt;code&gt;event=task_start|step_start|step_end|task_end&lt;/code&gt;, &lt;code&gt;log_type=task_agent&lt;/code&gt; and &lt;code&gt;instance_id&lt;/code&gt;. This gives near-real-time step progress and the job result per host. It is an internal format and may change between runner versions. Edit &lt;code&gt;matches&lt;/code&gt; to list your runner units.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Host metrics.&lt;/strong&gt; &lt;code&gt;prometheus.exporter.unix&lt;/code&gt; with its &lt;code&gt;textfile&lt;/code&gt; collector pointed at &lt;code&gt;CCI_JOBLOG_PROM_DIR&lt;/code&gt;, scraped every 15 s into &lt;code&gt;otelcol.receiver.prometheus&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Per-job CPU and memory (cAdvisor).&lt;/strong&gt; &lt;code&gt;prometheus.exporter.cadvisor&lt;/code&gt; reads cgroup CPU, memory and disk IO. &lt;code&gt;prometheus.relabel&lt;/code&gt; keeps only the &lt;code&gt;/system.slice/circleci-runner*.service&lt;/code&gt; cgroups and a few series, and copies the cgroup into a &lt;code&gt;cgroup&lt;/code&gt; label. Each runner agent runs one job at a time, so this is per-job usage. Join it with the wrapper&amp;rsquo;s &lt;code&gt;cgroup&lt;/code&gt; field.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;EC2 identity.&lt;/strong&gt; &lt;code&gt;otelcol.processor.resourcedetection&lt;/code&gt; with the &lt;code&gt;ec2&lt;/code&gt; and &lt;code&gt;system&lt;/code&gt; detectors sets &lt;code&gt;host.id&lt;/code&gt; (the instance ID) on logs and metrics.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;&lt;code&gt;instance_id&lt;/code&gt; on metrics.&lt;/strong&gt; &lt;code&gt;otelcol.processor.transform &amp;quot;metrics&amp;quot;&lt;/code&gt; copies &lt;code&gt;host.id&lt;/code&gt; into an &lt;code&gt;instance_id&lt;/code&gt; datapoint attribute, so metrics join with the wrapper&amp;rsquo;s &lt;code&gt;instance_id&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Export.&lt;/strong&gt; &lt;code&gt;otelcol.exporter.otlphttp&lt;/code&gt; with &lt;code&gt;otelcol.auth.basic&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 data-hextra-search-id="environment"&gt;Environment&lt;span class="hx:absolute hx:-mt-20" id="environment"&gt;&lt;/span&gt;
+&lt;a href="#environment" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;For example in &lt;code&gt;/etc/default/alloy&lt;/code&gt;:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Variable&lt;/th&gt;
+&lt;th&gt;Meaning&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;OTLP_ENDPOINT&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;OTLP/HTTP base URL. For Grafana Cloud, the stack&amp;rsquo;s region gateway, &lt;code&gt;https://otlp-gateway-&amp;lt;region&amp;gt;.grafana.net/otlp&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;OTLP_USERNAME&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Grafana Cloud instance (stack) ID&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;OTLP_PASSWORD&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Access token with write scope. Never commit it&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;EC2_INSTANCE_ID&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;This host&amp;rsquo;s instance ID, used for the journal lines. Write it at install time from IMDSv2 (&lt;code&gt;/latest/meta-data/instance-id&lt;/code&gt;)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2 data-hextra-search-id="permissions"&gt;Permissions&lt;span class="hx:absolute hx:-mt-20" id="permissions"&gt;&lt;/span&gt;
+&lt;a href="#permissions" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The &lt;code&gt;alloy&lt;/code&gt; user needs read access to &lt;code&gt;jobs.jsonl&lt;/code&gt;: add it to the runner&amp;rsquo;s group. The journal pipeline also needs membership of &lt;code&gt;systemd-journal&lt;/code&gt;. The textfile directory must be readable by &lt;code&gt;alloy&lt;/code&gt; too.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="circleci-spans-to-grafana"&gt;CircleCI spans to Grafana&lt;span class="hx:absolute hx:-mt-20" id="circleci-spans-to-grafana"&gt;&lt;/span&gt;
+&lt;a href="#circleci-spans-to-grafana" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Send CircleCI&amp;rsquo;s OpenTelemetry spans to the same stack with CircleCI&amp;rsquo;s exporter API (&lt;code&gt;POST /api/v2/otel/exporters&lt;/code&gt;):&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Endpoint: the gateway URL above with &lt;code&gt;/v1/traces&lt;/code&gt; appended.&lt;/li&gt;
+&lt;li&gt;Protocol: &lt;code&gt;http&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Header: &lt;code&gt;Authorization: Basic &amp;lt;base64(stackid:token)&amp;gt;&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The spans then land in Tempo, with &lt;code&gt;com.circleci.job.id&lt;/code&gt; matching the wrapper&amp;rsquo;s &lt;code&gt;job_id&lt;/code&gt;.&lt;/p&gt;</description></item><item><title>Ship with Datadog Agent</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-datadog/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-datadog/</guid><description>
+&lt;div
+data-alert="warning" class="hextra-alert"
+&gt;
+&lt;p class="hextra-alert-title"&gt;&lt;svg height=20px class="hextra-alert-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"&gt;&lt;path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/&gt;&lt;path d="M12 9v4"/&gt;&lt;path d="M12 17h.01"/&gt;&lt;/svg&gt;
+&lt;span class="hextra-alert-title-text"&gt;Warning&lt;/span&gt;
+&lt;/p&gt;
+&lt;div class="hextra-alert-content"&gt;&lt;p&gt;This is documented but &lt;strong&gt;not tested&lt;/strong&gt; in this repository.&lt;/p&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;See Datadog&amp;rsquo;s &lt;a href="https://docs.datadoghq.com/agent/logs/#custom-log-collection" target="_blank" rel="noopener"&gt;custom log collection&lt;/a&gt; and &lt;a href="https://docs.datadoghq.com/integrations/guide/prometheus-host-collection/" target="_blank" rel="noopener"&gt;Prometheus host collection&lt;/a&gt;.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;Enable logs in &lt;code&gt;datadog.yaml&lt;/code&gt;: &lt;code&gt;logs_enabled: true&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Create &lt;code&gt;/etc/datadog-agent/conf.d/circleci_job_wrapper.d/conf.yaml&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-yaml" data-lang="yaml"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nt"&gt;logs&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;- &lt;span class="nt"&gt;type&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;file&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;path&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;/var/log/circleci-job-wrapper/jobs.jsonl&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;service&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;circleci-job-wrapper&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;source&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="l"&gt;circleci&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Datadog parses the JSON into attributes. Make &lt;code&gt;@job_id&lt;/code&gt;, &lt;code&gt;@instance_id&lt;/code&gt; and &lt;code&gt;@runner_name&lt;/code&gt; facets.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Add the &lt;code&gt;dd-agent&lt;/code&gt; user to the runner&amp;rsquo;s group so it can read the file.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Optional: add a second &lt;code&gt;type: journald&lt;/code&gt; source for the runner units, with &lt;code&gt;include_units&lt;/code&gt;, to get the task agent&amp;rsquo;s step and result lines. The same caveat applies: the format is internal.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Host metrics come from the Agent&amp;rsquo;s built-in system checks. On EC2, the host is identified by its instance ID.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;For the busy gauge, point the Agent&amp;rsquo;s OpenMetrics check at node_exporter&amp;rsquo;s textfile collector, or build Datadog log-based metrics from &lt;code&gt;job_start&lt;/code&gt; and &lt;code&gt;job_end&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;CircleCI spans reach Datadog through its OTLP intake (the Agent&amp;rsquo;s or a Collector&amp;rsquo;s OTLP receiver, or Datadog&amp;rsquo;s OTLP endpoint), using the same CircleCI exporter API as in &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-alloy/#circleci-spans-to-grafana"&gt;Ship with Grafana Alloy&lt;/a&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;</description></item></channel></rss>

@@ -1,0 +1,45 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>CircleCI runner job wrapper – Operate</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/operate/</link><description>Recent content in Operate on CircleCI runner job wrapper</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><atom:link href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/index.xml" rel="self" type="application/rss+xml"/><item><title>Troubleshooting</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/</guid><description>
+&lt;p&gt;The wrapper never fails a job over logging, so a problem usually shows up as missing data, not as an error. Turn on diagnostics first: set &lt;code&gt;CCI_JOBLOG_DEBUG=1&lt;/code&gt; in the runner service environment, restart the runner, and read the runner&amp;rsquo;s journal.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="jobsjsonl-is-missing-or-empty"&gt;jobs.jsonl is missing or empty&lt;span class="hx:absolute hx:-mt-20" id="jobsjsonl-is-missing-or-empty"&gt;&lt;/span&gt;
+&lt;a href="#jobsjsonl-is-missing-or-empty" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ol&gt;
+&lt;li&gt;Check that the runner uses the wrapper: &lt;code&gt;command_prefix&lt;/code&gt; in the runner config must be &lt;code&gt;[&amp;quot;/usr/local/bin/circleci-job-wrapper&amp;quot;]&lt;/code&gt;, and the runner must have been restarted after the change.&lt;/li&gt;
+&lt;li&gt;Check that the file is executable: &lt;code&gt;ls -l /usr/local/bin/circleci-job-wrapper&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Check that &lt;code&gt;CCI_JOBLOG_DISABLE&lt;/code&gt; is not set in the runner&amp;rsquo;s environment.&lt;/li&gt;
+&lt;li&gt;Check the permissions below.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 data-hextra-search-id="permission-denied-on-the-log-directory"&gt;Permission denied on the log directory&lt;span class="hx:absolute hx:-mt-20" id="permission-denied-on-the-log-directory"&gt;&lt;/span&gt;
+&lt;a href="#permission-denied-on-the-log-directory" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The wrapper appends as the runner user, and skips logging silently if it cannot write. Check that &lt;code&gt;/var/log/circleci-job-wrapper&lt;/code&gt; is writable by that user:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo -u circleci &lt;span class="nb"&gt;test&lt;/span&gt; -w /var/log/circleci-job-wrapper &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="nb"&gt;echo&lt;/span&gt; writable&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Replace &lt;code&gt;circleci&lt;/code&gt; with your runner user. Fix it with a group-writable directory (mode 0775, owned by the runner group), or a &lt;code&gt;Group=&lt;/code&gt; drop-in for the host cache unit. If logrotate recreated the file as root, switch to &lt;code&gt;copytruncate&lt;/code&gt; as in the shipped config.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="ec2-fields-are-empty"&gt;EC2 fields are empty&lt;span class="hx:absolute hx:-mt-20" id="ec2-fields-are-empty"&gt;&lt;/span&gt;
+&lt;a href="#ec2-fields-are-empty" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Check that IMDS is enabled on the instance, and that you are on EC2. See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/configure/ec2-metadata/"&gt;EC2 metadata&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;Check the cache: &lt;code&gt;cat /run/circleci-job-wrapper/host.env&lt;/code&gt; (it contains the instance identity, not secrets). If the unit failed, run &lt;code&gt;systemctl status circleci-job-wrapper-hostcache.service&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;A negative result is cached for 300 s. After you fix IMDS, run &lt;code&gt;sudo /usr/local/bin/circleci-job-wrapper --refresh-host-cache&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 data-hextra-search-id="runner_name-is-empty-or-the-state-file-is-called-pid-nnnjson"&gt;runner_name is empty or the state file is called pid-NNN.json&lt;span class="hx:absolute hx:-mt-20" id="runner_name-is-empty-or-the-state-file-is-called-pid-nnnjson"&gt;&lt;/span&gt;
+&lt;a href="#runner_name-is-empty-or-the-state-file-is-called-pid-nnnjson" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The wrapper could not find &lt;code&gt;runner.name&lt;/code&gt;. Set &lt;code&gt;CCI_RUNNER_NAME&lt;/code&gt; in the runner&amp;rsquo;s environment or the operator file, or check that the runner config has a &lt;code&gt;name:&lt;/code&gt; key directly under &lt;code&gt;runner:&lt;/code&gt;. See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/configure/configuration/#runner-name"&gt;Configuration&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="resource_class-is-empty"&gt;resource_class is empty&lt;span class="hx:absolute hx:-mt-20" id="resource_class-is-empty"&gt;&lt;/span&gt;
+&lt;a href="#resource_class-is-empty" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The runner does not tell the wrapper its resource class. Set &lt;code&gt;CCI_RESOURCE_CLASS&lt;/code&gt; in the operator file. See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/configure/configuration/#resource-class"&gt;Configuration&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="a-job_start-has-no-job_end"&gt;A job_start has no job_end&lt;span class="hx:absolute hx:-mt-20" id="a-job_start-has-no-job_end"&gt;&lt;/span&gt;
+&lt;a href="#a-job_start-has-no-job_end" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;This is expected when the runner kills the wrapper with &lt;code&gt;SIGKILL&lt;/code&gt;. See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/reference/how-it-works/#signals"&gt;How it works&lt;/a&gt;. Treat a state file whose &lt;code&gt;wrapper_pid&lt;/code&gt; is gone as stale.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="alloy-cannot-read-the-log-or-the-journal"&gt;Alloy cannot read the log or the journal&lt;span class="hx:absolute hx:-mt-20" id="alloy-cannot-read-the-log-or-the-journal"&gt;&lt;/span&gt;
+&lt;a href="#alloy-cannot-read-the-log-or-the-journal" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Add the &lt;code&gt;alloy&lt;/code&gt; user to the runner&amp;rsquo;s group so it can read &lt;code&gt;jobs.jsonl&lt;/code&gt;, and restart Alloy.&lt;/li&gt;
+&lt;li&gt;For the journal pipeline, add &lt;code&gt;alloy&lt;/code&gt; to the &lt;code&gt;systemd-journal&lt;/code&gt; group.&lt;/li&gt;
+&lt;li&gt;Make the &lt;code&gt;CCI_JOBLOG_PROM_DIR&lt;/code&gt; directory readable by &lt;code&gt;alloy&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Check that &lt;code&gt;matches&lt;/code&gt; in &lt;code&gt;config.alloy&lt;/code&gt; lists your runner units.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Then read the Alloy log for &lt;code&gt;permission denied&lt;/code&gt; or &lt;code&gt;no such file&lt;/code&gt;.&lt;/p&gt;</description></item></channel></rss>

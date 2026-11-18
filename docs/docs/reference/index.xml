@@ -1,0 +1,165 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>CircleCI runner job wrapper – Reference</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/reference/</link><description>Recent content in Reference on CircleCI runner job wrapper</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><atom:link href="https://circleci-labs.github.io/runner-job-wrapper/docs/reference/index.xml" rel="self" type="application/rss+xml"/><item><title>Event schema</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/reference/event-schema/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/reference/event-schema/</guid><description>
+&lt;p&gt;The wrapper writes one JSON object per line (schema version 1), UTF-8. Each line is written with a single append and stays well under 4 KiB, so concurrent appends from many runner agents do not interleave.&lt;/p&gt;
+&lt;p&gt;All identifiers are strings, and a missing value is &lt;code&gt;&amp;quot;&amp;quot;&lt;/code&gt;, so every line has the same keys. &lt;code&gt;job_end&lt;/code&gt; additionally has &lt;code&gt;agent_exit_code&lt;/code&gt;, &lt;code&gt;duration_ms&lt;/code&gt;, &lt;code&gt;start_ms&lt;/code&gt;, &lt;code&gt;end_ms&lt;/code&gt;, &lt;code&gt;cpu_user_ms&lt;/code&gt;, &lt;code&gt;cpu_sys_ms&lt;/code&gt; and &lt;code&gt;agent_status&lt;/code&gt;.&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Field&lt;/th&gt;
+&lt;th&gt;Source&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;schema&lt;/code&gt; (number), &lt;code&gt;event&lt;/code&gt;, &lt;code&gt;ts&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;job_start&lt;/code&gt; or &lt;code&gt;job_end&lt;/code&gt;. &lt;code&gt;ts&lt;/code&gt; is RFC 3339 UTC with milliseconds&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;job_id&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;CIRCLE_WORKFLOW_JOB_ID&lt;/code&gt; (fallback &lt;code&gt;CIRCLE_JOB_ID&lt;/code&gt;). The join key: equals &lt;code&gt;com.circleci.job.id&lt;/code&gt; on CircleCI spans&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;job_name&lt;/code&gt;, &lt;code&gt;job_number&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;CIRCLE_JOB&lt;/code&gt;, &lt;code&gt;CIRCLE_BUILD_NUM&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;workflow_id&lt;/code&gt;, &lt;code&gt;pipeline_id&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;CIRCLE_WORKFLOW_ID&lt;/code&gt;, &lt;code&gt;CIRCLE_PIPELINE_ID&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;trace_id&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;The pipeline ID without dashes. It is the trace ID of CircleCI&amp;rsquo;s OpenTelemetry spans, so it joins an event to its trace&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;cgroup&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;The runner agent&amp;rsquo;s cgroup, read from &lt;code&gt;/proc/self/cgroup&lt;/code&gt;, for example &lt;code&gt;/system.slice/circleci-runner.service&lt;/code&gt;. It joins cAdvisor per-service metrics. An agent runs one job at a time, so the series is per job&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;pipeline_number&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;CIRCLE_PIPELINE_NUMBER&lt;/code&gt;. The runner does not provide it, so it is normally empty&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;workflow_url&lt;/code&gt;, &lt;code&gt;pipeline_url&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;&amp;lt;base&amp;gt;/workflow/&amp;lt;workflow_id&amp;gt;&lt;/code&gt; and &lt;code&gt;&amp;lt;base&amp;gt;/pipeline/&amp;lt;pipeline_id&amp;gt;&lt;/code&gt;. The base is &lt;code&gt;CCI_JOBLOG_APP_URL&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;project&lt;/code&gt;, &lt;code&gt;org&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;CIRCLE_PROJECT_REPONAME&lt;/code&gt;, &lt;code&gt;CIRCLE_PROJECT_USERNAME&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;org_id&lt;/code&gt;, &lt;code&gt;project_id&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;CIRCLE_ORGANIZATION_ID&lt;/code&gt;, &lt;code&gt;CIRCLE_PROJECT_ID&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;branch&lt;/code&gt;, &lt;code&gt;sha&lt;/code&gt;, &lt;code&gt;build_url&lt;/code&gt;, &lt;code&gt;node_index&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;CIRCLE_BRANCH&lt;/code&gt;, &lt;code&gt;CIRCLE_SHA1&lt;/code&gt;, &lt;code&gt;CIRCLE_BUILD_URL&lt;/code&gt; (the job link), &lt;code&gt;CIRCLE_NODE_INDEX&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;pr_number&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;CIRCLE_PR_NUMBER&lt;/code&gt;. The runner does not provide it, so it is normally empty&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;hostname&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;The host&amp;rsquo;s name&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;instance_id&lt;/code&gt;, &lt;code&gt;instance_type&lt;/code&gt;, &lt;code&gt;availability_zone&lt;/code&gt;, &lt;code&gt;region&lt;/code&gt;, &lt;code&gt;private_ip&lt;/code&gt;, &lt;code&gt;ami_id&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;EC2 instance identity document. Empty off EC2&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;runner_name&lt;/code&gt;, &lt;code&gt;resource_class&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/configure/configuration/"&gt;Configuration&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;wrapper_pid&lt;/code&gt;, &lt;code&gt;agent_pid&lt;/code&gt; (numbers)&lt;/td&gt;
+&lt;td&gt;The wrapper and the task agent process&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;extra fields&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;CCI_JOBLOG_EXTRA_FIELDS&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;agent_exit_code&lt;/code&gt;, &lt;code&gt;duration_ms&lt;/code&gt;, &lt;code&gt;start_ms&lt;/code&gt;, &lt;code&gt;end_ms&lt;/code&gt; (numbers), &lt;code&gt;agent_status&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;job_end&lt;/code&gt; only. &lt;code&gt;start_ms&lt;/code&gt; and &lt;code&gt;end_ms&lt;/code&gt; are epoch milliseconds&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;cpu_user_ms&lt;/code&gt;, &lt;code&gt;cpu_sys_ms&lt;/code&gt; (numbers)&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;job_end&lt;/code&gt; only. CPU time of the job&amp;rsquo;s whole process tree, from the reaped-children rusage of the wrapper in &lt;code&gt;/proc/&amp;lt;pid&amp;gt;/stat&lt;/code&gt;. It assumes &lt;code&gt;CLK_TCK=100&lt;/code&gt;, standard on Linux x86_64 and arm64&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;code&gt;agent_status&lt;/code&gt; is &lt;code&gt;completed&lt;/code&gt; (the agent exited 0), &lt;code&gt;agent_error&lt;/code&gt;, or &lt;code&gt;cancelled&lt;/code&gt; (the wrapper received &lt;code&gt;TERM&lt;/code&gt;, &lt;code&gt;INT&lt;/code&gt; or &lt;code&gt;HUP&lt;/code&gt;). It describes the agent process, not the job result. See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/reference/how-it-works/#agent_status-is-not-the-job-result"&gt;How it works&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Only the variables listed here are ever read. The environment is never dumped and the agent&amp;rsquo;s command line is never logged. The &lt;code&gt;CIRCLE_*&lt;/code&gt; names are read defensively, and any that the runner does not provide are empty.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="example"&gt;Example&lt;span class="hx:absolute hx:-mt-20" id="example"&gt;&lt;/span&gt;
+&lt;a href="#example" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-json" data-lang="json"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;schema&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;event&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;job_start&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;ts&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;2026-11-18T20:31:55.456Z&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;job_id&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;5b1e0c1a-0000-4000-8000-000000000001&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;job_name&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;build&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;job_number&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;1234&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;workflow_id&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;7f3d0000-0000-4000-8000-000000000002&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;workflow_url&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;https://app.circleci.com/workflow/7f3d0000-0000-4000-8000-000000000002&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;pipeline_id&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;a1b20000-0000-4000-8000-000000000003&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;pipeline_url&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;https://app.circleci.com/pipeline/a1b20000-0000-4000-8000-000000000003&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;pipeline_number&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;project&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;example-repo&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;org&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;example-org&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;org_id&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;c0de0000-0000-4000-8000-000000000004&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;project_id&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;d00d0000-0000-4000-8000-000000000005&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;branch&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;main&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;sha&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;0123456789abcdef0123456789abcdef01234567&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;build_url&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;https://app.circleci.com/jobs/1234&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;node_index&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;0&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;pr_number&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;hostname&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;ip-10-0-1-23&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;instance_id&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;i-0123456789abcdef0&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;instance_type&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;c7g.xlarge&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;availability_zone&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;us-east-1b&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;region&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;us-east-1&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;private_ip&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;10.0.1.23&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;ami_id&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;ami-0abc1234def567890&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;runner_name&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;runner-1&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;resource_class&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;my-org/linux-large&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;wrapper_pid&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;1656458&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;agent_pid&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;1656459&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;team&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;infra&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;pool&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;bazel&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;schema&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;event&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;job_end&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;ts&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;2026-11-18T20:31:55.758Z&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;job_id&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;5b1e0c1a-0000-4000-8000-000000000001&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;job_name&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;build&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;...&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;(same fields as job_start)&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;team&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;infra&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;pool&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;bazel&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;agent_exit_code&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;duration_ms&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;302&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;start_ms&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;1795033915456&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;end_ms&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="mi"&gt;1795033915758&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="nt"&gt;&amp;#34;agent_status&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;completed&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;The &lt;code&gt;&amp;quot;...&amp;quot;:&lt;/code&gt; key in the second line only abbreviates this page. Real lines repeat all fields.&lt;/p&gt;</description></item><item><title>How it works</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/reference/how-it-works/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/reference/how-it-works/</guid><description>
+&lt;h2 data-hextra-search-id="how-command_prefix-invokes-the-wrapper"&gt;How command_prefix invokes the wrapper&lt;span class="hx:absolute hx:-mt-20" id="how-command_prefix-invokes-the-wrapper"&gt;&lt;/span&gt;
+&lt;a href="#how-command_prefix-invokes-the-wrapper" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;With this runner config:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-yaml" data-lang="yaml"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nt"&gt;runner&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;command_prefix&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;/usr/local/bin/circleci-job-wrapper&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;the runner executes&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;/usr/local/bin/circleci-job-wrapper &amp;lt;task-agent-path&amp;gt; &amp;lt;agent args...&amp;gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;with the job&amp;rsquo;s built-in environment (&lt;code&gt;CIRCLE_*&lt;/code&gt;) added and the task token on stdin. The wrapper:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Starts the task agent as a child with &lt;code&gt;&amp;lt;&amp;amp;0&lt;/code&gt;, so stdin is the very same pipe.&lt;/li&gt;
+&lt;li&gt;While the job already runs, resolves the host identity and writes &lt;code&gt;job_start&lt;/code&gt; and the state file. The cost to job start-up is one &lt;code&gt;fork&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Waits for the child. If the wrapper itself gets &lt;code&gt;SIGTERM&lt;/code&gt;, &lt;code&gt;SIGINT&lt;/code&gt; or &lt;code&gt;SIGHUP&lt;/code&gt;, it forwards the signal to the child.&lt;/li&gt;
+&lt;li&gt;Writes &lt;code&gt;job_end&lt;/code&gt;, removes the state file, and exits with the child&amp;rsquo;s exit code (&lt;code&gt;128+n&lt;/code&gt; for a signalled child).&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Every helper command the wrapper runs has &lt;code&gt;&amp;lt;/dev/null&lt;/code&gt;, so it can never take the task token from the agent&amp;rsquo;s stdin. The wrapper never changes the job&amp;rsquo;s environment, umask or process group.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="overhead"&gt;Overhead&lt;span class="hx:absolute hx:-mt-20" id="overhead"&gt;&lt;/span&gt;
+&lt;a href="#overhead" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;About 6 ms per job. The agent is spawned before any telemetry runs. Logging is best effort: every logging failure is swallowed, and the wrapper is silent unless &lt;code&gt;CCI_JOBLOG_DEBUG&lt;/code&gt; is set. It needs bash 4 or later and POSIX utilities, with no &lt;code&gt;jq&lt;/code&gt;, no daemon and no Python.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="agent_status-is-not-the-job-result"&gt;agent_status is not the job result&lt;span class="hx:absolute hx:-mt-20" id="agent_status-is-not-the-job-result"&gt;&lt;/span&gt;
+&lt;a href="#agent_status-is-not-the-job-result" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The task agent exits 0 even when the job fails or is cancelled from the UI. So &lt;code&gt;completed&lt;/code&gt; only means the agent process exited 0. Take the job result from the CircleCI span (&lt;code&gt;com.circleci.job.status&lt;/code&gt;) or, on the host, from the task agent&amp;rsquo;s own &amp;ldquo;Reporting task end.&amp;rdquo; log line (see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-alloy/"&gt;Ship with Grafana Alloy&lt;/a&gt;).&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;cancelled&lt;/code&gt; only means the wrapper received &lt;code&gt;TERM&lt;/code&gt;, &lt;code&gt;INT&lt;/code&gt; or &lt;code&gt;HUP&lt;/code&gt;, for example because the runner is stopping a task.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="signals"&gt;Signals&lt;span class="hx:absolute hx:-mt-20" id="signals"&gt;&lt;/span&gt;
+&lt;a href="#signals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;When the runner stops a task, it sends &lt;code&gt;SIGTERM&lt;/code&gt; to the &lt;code&gt;command_prefix&lt;/code&gt; process only, not the process group. It sends &lt;code&gt;SIGKILL&lt;/code&gt; to the whole process group after 10 s, or immediately with &lt;code&gt;enable_unsafe_retries&lt;/code&gt;. So:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Signal forwarding (on by default) is required. Otherwise the agent never sees the &lt;code&gt;SIGTERM&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;If the agent has not exited within 10 s, the wrapper is killed too and &lt;code&gt;job_end&lt;/code&gt; is lost. Consumers must tolerate a &lt;code&gt;job_start&lt;/code&gt; without a &lt;code&gt;job_end&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;A cancel from the CircleCI UI is handled by the agent itself (exit 0, no signal), so it shows as &lt;code&gt;completed&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 data-hextra-search-id="stdin"&gt;stdin&lt;span class="hx:absolute hx:-mt-20" id="stdin"&gt;&lt;/span&gt;
+&lt;a href="#stdin" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The task token stays on the agent&amp;rsquo;s stdin. The wrapper never reads or redirects it.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="environment-the-runner-provides"&gt;Environment the runner provides&lt;span class="hx:absolute hx:-mt-20" id="environment-the-runner-provides"&gt;&lt;/span&gt;
+&lt;a href="#environment-the-runner-provides" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Verified on machine runner 3.1.14, these built-in variables reach the &lt;code&gt;command_prefix&lt;/code&gt; process (names only):&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;CIRCLE_BRANCH&lt;/code&gt; &lt;code&gt;CIRCLE_BUILD_NUM&lt;/code&gt; &lt;code&gt;CIRCLE_BUILD_URL&lt;/code&gt; &lt;code&gt;CIRCLE_JOB&lt;/code&gt; &lt;code&gt;CIRCLE_NODE_INDEX&lt;/code&gt; &lt;code&gt;CIRCLE_NODE_TOTAL&lt;/code&gt; &lt;code&gt;CIRCLE_ORGANIZATION_ID&lt;/code&gt; &lt;code&gt;CIRCLE_PIPELINE_ID&lt;/code&gt; &lt;code&gt;CIRCLE_PROJECT_ID&lt;/code&gt; &lt;code&gt;CIRCLE_PROJECT_REPONAME&lt;/code&gt; &lt;code&gt;CIRCLE_PROJECT_USERNAME&lt;/code&gt; &lt;code&gt;CIRCLE_REPOSITORY_URL&lt;/code&gt; &lt;code&gt;CIRCLE_SHA1&lt;/code&gt; &lt;code&gt;CIRCLE_USERNAME&lt;/code&gt; &lt;code&gt;CIRCLE_WORKFLOW_ID&lt;/code&gt; &lt;code&gt;CIRCLE_WORKFLOW_JOB_ID&lt;/code&gt; &lt;code&gt;CIRCLE_WORKFLOW_WORKSPACE_ID&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;There is no resource class, pipeline number or PR number, so those event fields stay empty unless you supply them. For the resource class, see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/configure/configuration/#resource-class"&gt;Configuration&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="multiple-runners-on-one-host"&gt;Multiple runners on one host&lt;span class="hx:absolute hx:-mt-20" id="multiple-runners-on-one-host"&gt;&lt;/span&gt;
+&lt;a href="#multiple-runners-on-one-host" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Several runner agents share one wrapper, one log file and one cache. Each event carries its &lt;code&gt;runner_name&lt;/code&gt;, and each runner has its own state file. See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/install/#several-runner-agents-on-one-host"&gt;Install&lt;/a&gt;.&lt;/p&gt;</description></item></channel></rss>
