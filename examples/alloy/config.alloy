@@ -1,6 +1,7 @@
 // Grafana Alloy: ship circleci-job-wrapper events + host metrics over OTLP.
 // Works with Grafana Cloud's OTLP gateway or any OTLP/HTTP endpoint.
-// Env (e.g. /etc/default/alloy): OTLP_ENDPOINT, OTLP_USERNAME, OTLP_PASSWORD
+// Env (e.g. /etc/default/alloy): OTLP_ENDPOINT, OTLP_USERNAME, OTLP_PASSWORD,
+// EC2_INSTANCE_ID (curl IMDSv2 /latest/meta-data/instance-id at install time)
 
 // ---- 1. Job events written by circleci-job-wrapper (JSON lines) ----
 local.file_match "cci_jobs" {
@@ -22,7 +23,49 @@ loki.process "cci_jobs" {
     values = { event = "", resource_class = "", runner = "", instance_id = "" }
   }
   stage.static_labels {
-    values = { service_name = "circleci-job-wrapper" }
+    values = { service_name = "circleci-job-wrapper", log_type = "wrapper" }
+  }
+  forward_to = [otelcol.receiver.loki.default.receiver]
+}
+
+// ---- 1b. Optional: the task agent's own JSON log lines from the runner's
+// journal (step start/end, task result). Gives live step progress and the job
+// result on the host side. NOTE: internal task-agent log format; it may change
+// between runner versions. Only lines with these messages are kept.
+loki.relabel "runner_journal" {
+  forward_to = []
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+}
+
+loki.source.journal "runner" {
+  matches       = "_SYSTEMD_UNIT=circleci-runner.service _SYSTEMD_UNIT=circleci-runner-b.service"
+  relabel_rules = loki.relabel.runner_journal.rules
+  forward_to    = [loki.process.task_agent.receiver]
+}
+
+loki.process "task_agent" {
+  stage.match {
+    selector = "{unit=~\".+\"} !~ \"\\\"msg\\\":\\\"(Runner started execution|step start|step end|Reporting task end\\\\.)\\\"\""
+    action   = "drop"
+  }
+  stage.json {
+    expressions = { msg = "msg", job_id = "\"job-id\"" }
+  }
+  stage.template {
+    source   = "agent_event"
+    template = "{{ if eq .msg \"Reporting task end.\" }}task_end{{ else if eq .msg \"Runner started execution\" }}task_start{{ else if eq .msg \"step start\" }}step_start{{ else }}step_end{{ end }}"
+  }
+  stage.labels {
+    values = { event = "agent_event" }
+  }
+  stage.static_labels {
+    values = { service_name = "circleci-job-wrapper", log_type = "task_agent" }
+  }
+  stage.static_labels {
+    values = { instance_id = sys.env("EC2_INSTANCE_ID") }
   }
   forward_to = [otelcol.receiver.loki.default.receiver]
 }
