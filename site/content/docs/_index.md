@@ -9,7 +9,7 @@ The wrapper records which job ran on which host. New here? Follow [Set it up end
 | You want to | Read |
 |---|---|
 | Set it all up | [Set it up end to end]({{< relref "/docs/get-started/set-up-end-to-end.md" >}}) |
-| Install the wrapper only | [Install]({{< relref "/docs/get-started/install.md" >}}) |
+| Run several runners, upgrade or remove it | [Several runners, upgrades and removal]({{< relref "/docs/operate/run-several-runners-and-upgrade.md" >}}) |
 | Change a setting | [Configuration]({{< relref "/docs/configure/configuration.md" >}}) |
 | Know what is logged | [Event schema]({{< relref "/docs/reference/event-schema.md" >}}) |
 | Understand what it does to a job | [How it works]({{< relref "/docs/reference/how-it-works.md" >}}) |

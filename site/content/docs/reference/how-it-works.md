@@ -59,4 +59,4 @@ There is no resource class, pipeline number or PR number, so those event fields 
 
 ## Multiple runners on one host
 
-Several runner agents share one wrapper, one log file and one cache. Each event carries its `runner_name`, and each runner has its own state file. See [Install]({{< relref "/docs/get-started/install.md#several-runner-agents-on-one-host" >}}).
+Several runner agents share one wrapper, one log file and one cache. Each event carries its `runner_name`, and each runner has its own state file. See [Several runners, upgrades and removal]({{< relref "/docs/operate/run-several-runners-and-upgrade.md#several-runner-agents-on-one-host" >}}).

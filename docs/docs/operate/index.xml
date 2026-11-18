@@ -42,4 +42,164 @@ data-copied-label="Copied!"
 &lt;li&gt;Make the &lt;code&gt;CCI_JOBLOG_PROM_DIR&lt;/code&gt; directory readable by &lt;code&gt;alloy&lt;/code&gt;.&lt;/li&gt;
 &lt;li&gt;Check that &lt;code&gt;matches&lt;/code&gt; in &lt;code&gt;config.alloy&lt;/code&gt; lists your runner units.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;Then read the Alloy log for &lt;code&gt;permission denied&lt;/code&gt; or &lt;code&gt;no such file&lt;/code&gt;.&lt;/p&gt;</description></item></channel></rss>
+&lt;p&gt;Then read the Alloy log for &lt;code&gt;permission denied&lt;/code&gt; or &lt;code&gt;no such file&lt;/code&gt;.&lt;/p&gt;</description></item><item><title>Several runners, upgrades and removal</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/operate/run-several-runners-and-upgrade/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/operate/run-several-runners-and-upgrade/</guid><description>
+&lt;p&gt;Day-two tasks for the wrapper after you have followed &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/set-up-end-to-end/"&gt;Set it up end to end&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="several-runner-agents-on-one-host"&gt;Several runner agents on one host&lt;span class="hx:absolute hx:-mt-20" id="several-runner-agents-on-one-host"&gt;&lt;/span&gt;
+&lt;a href="#several-runner-agents-on-one-host" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Agents on one host share the wrapper, the log file and the cache. This was tested with two systemd units (&lt;code&gt;circleci-runner&lt;/code&gt; and &lt;code&gt;circleci-runner-b&lt;/code&gt;), each with its own &lt;code&gt;-c&lt;/code&gt; config file and &lt;code&gt;runner.name&lt;/code&gt;. The wrapper reads the name from the parent&amp;rsquo;s &lt;code&gt;-c&lt;/code&gt; or &lt;code&gt;--config&lt;/code&gt; argument, so nothing more is needed, and events from both interleave safely. Each runner has its own state file.&lt;/p&gt;
+&lt;p&gt;Set &lt;code&gt;CCI_RUNNER_NAME&lt;/code&gt; in a unit&amp;rsquo;s environment only to override the name.&lt;/p&gt;
+&lt;p&gt;Check which runner wrote which event. On the runner host:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# one line per runner name seen in the last 200 events&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;tail -n &lt;span class="m"&gt;200&lt;/span&gt; /var/log/circleci-job-wrapper/jobs.jsonl &lt;span class="p"&gt;|&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; jq -r .runner_name &lt;span class="p"&gt;|&lt;/span&gt; sort &lt;span class="p"&gt;|&lt;/span&gt; uniq -c&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Expected output:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; 12 runner-a
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; 9 runner-b&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;If it fails: a runner with an empty name is covered in &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/"&gt;Troubleshooting&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="file-locations-and-permissions"&gt;File locations and permissions&lt;span class="hx:absolute hx:-mt-20" id="file-locations-and-permissions"&gt;&lt;/span&gt;
+&lt;a href="#file-locations-and-permissions" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Path&lt;/th&gt;
+&lt;th&gt;Mode and owner&lt;/th&gt;
+&lt;th&gt;What it is&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;/usr/local/bin/circleci-job-wrapper&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;0755, root&lt;/td&gt;
+&lt;td&gt;The wrapper&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;/var/log/circleci-job-wrapper/&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;0775, root, runner group&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;jobs.jsonl&lt;/code&gt; and its rotations. The runner user must be able to write here&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;/run/circleci-job-wrapper/&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;1777 (sticky)&lt;/td&gt;
+&lt;td&gt;State files and the root-owned &lt;code&gt;host.env&lt;/code&gt; cache. Runner accounts write state files but cannot replace &lt;code&gt;host.env&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;/etc/circleci-job-wrapper/wrapper.env&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;0644, root&lt;/td&gt;
+&lt;td&gt;Operator settings. Parsed, never sourced&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;/etc/systemd/system/circleci-job-wrapper-hostcache.service&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;0644, root&lt;/td&gt;
+&lt;td&gt;Boot-time host cache unit&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;/etc/logrotate.d/circleci-job-wrapper&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;0644, root&lt;/td&gt;
+&lt;td&gt;Daily rotation&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;The host cache unit runs &lt;code&gt;circleci-job-wrapper --refresh-host-cache&lt;/code&gt; once per boot and creates the two directories above. If your runner group is not &lt;code&gt;circleci&lt;/code&gt;, add a &lt;code&gt;Group=&lt;/code&gt; line in a drop-in of the unit.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="upgrade-the-wrapper"&gt;Upgrade the wrapper&lt;span class="hx:absolute hx:-mt-20" id="upgrade-the-wrapper"&gt;&lt;/span&gt;
+&lt;a href="#upgrade-the-wrapper" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The wrapper is one file, and each job starts a fresh copy, so an upgrade needs no downtime. A job that is running keeps using the old copy. On the runner host, from an updated checkout:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# replace the script atomically&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0755&lt;/span&gt; bin/circleci-job-wrapper &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; /usr/local/bin/circleci-job-wrapper.new
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo mv /usr/local/bin/circleci-job-wrapper.new &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; /usr/local/bin/circleci-job-wrapper
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# refresh the unit and logrotate files if they changed&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0644&lt;/span&gt; systemd/circleci-job-wrapper-hostcache.service &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; /etc/systemd/system/
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl daemon-reload
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl restart circleci-job-wrapper-hostcache.service&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Check that the new version works. Run a job, then:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;tail -n1 /var/log/circleci-job-wrapper/jobs.jsonl &lt;span class="p"&gt;|&lt;/span&gt; jq -c &lt;span class="s1"&gt;&amp;#39;{event,schema}&amp;#39;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Expected output:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;{&amp;#34;event&amp;#34;:&amp;#34;job_end&amp;#34;,&amp;#34;schema&amp;#34;:1}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;If it fails: see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/"&gt;Troubleshooting&lt;/a&gt;. To roll back, install the previous copy the same way.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="uninstall"&gt;Uninstall&lt;span class="hx:absolute hx:-mt-20" id="uninstall"&gt;&lt;/span&gt;
+&lt;a href="#uninstall" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Remove the prefix first, so no job calls a missing file. On the runner host:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# 1. delete the command_prefix lines from the runner config, then&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl restart circleci-runner
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# 2. remove the wrapper, the unit, rotation and settings&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl disable --now circleci-job-wrapper-hostcache.service
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo rm /etc/systemd/system/circleci-job-wrapper-hostcache.service
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo rm /etc/logrotate.d/circleci-job-wrapper
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo rm /usr/local/bin/circleci-job-wrapper
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo rm -r /etc/circleci-job-wrapper
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl daemon-reload&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;The logs in &lt;code&gt;/var/log/circleci-job-wrapper&lt;/code&gt; stay until you delete them.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="run-the-tests"&gt;Run the tests&lt;span class="hx:absolute hx:-mt-20" id="run-the-tests"&gt;&lt;/span&gt;
+&lt;a href="#run-the-tests" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;make check&lt;/code&gt; runs shellcheck and the bats tests. It needs &lt;code&gt;bats&lt;/code&gt;, &lt;code&gt;jq&lt;/code&gt;, &lt;code&gt;python3&lt;/code&gt; and &lt;code&gt;curl&lt;/code&gt;. &lt;code&gt;strace&lt;/code&gt; and &lt;code&gt;iconv&lt;/code&gt; are used when present.&lt;/p&gt;</description></item></channel></rss>

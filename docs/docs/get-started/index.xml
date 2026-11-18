@@ -1,6 +1,6 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>CircleCI runner job wrapper – Get started</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/</link><description>Recent content in Get started on CircleCI runner job wrapper</description><generator>Hugo -- gohugo.io</generator><language>en-US</language><atom:link href="https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/index.xml" rel="self" type="application/rss+xml"/><item><title>Set it up end to end</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/set-up-end-to-end/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/set-up-end-to-end/</guid><description>
-&lt;p&gt;This guide takes you from nothing to a dashboard where you pick a CircleCI job and see its trace, its steps, the host it ran on and the CPU it used. Do the stages in order. Each ends with a check, so you know it worked before you go on.&lt;/p&gt;
-&lt;p&gt;Stages 1 to 3 are the wrapper alone, and are enough to get host identity on every job. Stages 4 to 7 add CircleCI spans, a shipper and the dashboards.&lt;/p&gt;
+&lt;p&gt;This is the one install path. It takes you from nothing to a dashboard where you pick a CircleCI job and see its trace, its steps, the host it ran on and the CPU it used. Do the stages in order. Each stage says why you do it, what to do, and how to check that it worked before you go on.&lt;/p&gt;
+&lt;p&gt;Stages 1 to 3 are the wrapper alone, and are enough to get host identity on every job. Stages 4 to 7 add CircleCI spans, a shipper and the dashboards. For several runners on one host, upgrades and removal, see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/run-several-runners-and-upgrade/"&gt;Several runners, upgrades and removal&lt;/a&gt;.&lt;/p&gt;
 &lt;div class="cci-diagram"&gt;&lt;pre class="mermaid hx:mt-6"&gt;flowchart LR
 W[&amp;#34;Job wrapper&amp;lt;br/&amp;gt;(runner command_prefix)&amp;#34;] --&amp;gt;|job events| L[(&amp;#34;jobs.jsonl&amp;#34;)]
 T[&amp;#34;Task agent&amp;#34;] --&amp;gt;|steps, result| J[(&amp;#34;Runner journal&amp;#34;)]
@@ -18,19 +18,87 @@ data-alert="note" class="hextra-alert"
 &lt;/p&gt;
 &lt;div class="hextra-alert-content"&gt;&lt;p&gt;This is a CircleCI Labs project, not an official CircleCI product. Pages mark what is tested and what is not.&lt;/p&gt;&lt;/div&gt;
 &lt;/div&gt;
+&lt;h3 data-hextra-search-id="what-gets-installed"&gt;What gets installed&lt;span class="hx:absolute hx:-mt-20" id="what-gets-installed"&gt;&lt;/span&gt;
+&lt;a href="#what-gets-installed" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Stage&lt;/th&gt;
+&lt;th&gt;What&lt;/th&gt;
+&lt;th&gt;Where&lt;/th&gt;
+&lt;th&gt;Needed for&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;circleci-job-wrapper&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;/usr/local/bin/&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Everything&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;Log directory&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;/var/log/circleci-job-wrapper/&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Everything&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;Host cache unit&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;/etc/systemd/system/circleci-job-wrapper-hostcache.service&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;EC2 identity without a metadata call per job&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;Log rotation&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;/etc/logrotate.d/circleci-job-wrapper&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Daily rotation of &lt;code&gt;jobs.jsonl&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;2&lt;/td&gt;
+&lt;td&gt;Operator file&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;/etc/circleci-job-wrapper/wrapper.env&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Resource class, busy gauge&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;3&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;command_prefix&lt;/code&gt; line&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;/etc/circleci-runner/circleci-runner-config.yaml&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Turns the wrapper on&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;4&lt;/td&gt;
+&lt;td&gt;OpenTelemetry exporter&lt;/td&gt;
+&lt;td&gt;CircleCI organization settings&lt;/td&gt;
+&lt;td&gt;Job result, steps, timing&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;5&lt;/td&gt;
+&lt;td&gt;Grafana Alloy config&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;/etc/alloy/config.alloy&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Shipping data to your backend&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;6&lt;/td&gt;
+&lt;td&gt;Dashboards&lt;/td&gt;
+&lt;td&gt;Grafana&lt;/td&gt;
+&lt;td&gt;Seeing it all&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
 &lt;h2 data-hextra-search-id="1-prerequisites"&gt;1. Prerequisites&lt;span class="hx:absolute hx:-mt-20" id="1-prerequisites"&gt;&lt;/span&gt;
-&lt;a href="#1-prerequisites" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;a href="#1-prerequisites" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;Why:&lt;/strong&gt; the wrapper needs a modern machine runner and a few standard tools, and you need the rights to finish stages 4 to 7. Finding a gap now is cheaper than finding it in stage 5.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Do:&lt;/strong&gt; confirm you have all of these.&lt;/p&gt;
+&lt;ul&gt;
 &lt;li&gt;A CircleCI &lt;strong&gt;machine runner 3.1.11 or later on Linux&lt;/strong&gt;. Tested with 3.1.14 on Ubuntu 24.04.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Organization admin&lt;/strong&gt; rights in CircleCI, to add an OpenTelemetry exporter (stage 4).&lt;/li&gt;
 &lt;li&gt;On EC2, the &lt;strong&gt;instance metadata service (IMDS) enabled&lt;/strong&gt;. IMDSv2 works. Off EC2 the EC2 fields stay empty and nothing else changes.&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;bash&lt;/code&gt; 4 or later, &lt;code&gt;curl&lt;/code&gt;, and shell access with &lt;code&gt;sudo&lt;/code&gt; to the runner host.&lt;/li&gt;
 &lt;li&gt;For stages 4 to 7: a Grafana Cloud stack (or another OTLP backend) and a Grafana access token.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;Check it worked:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Check 1a: the runner is installed and running.&lt;/strong&gt; This proves the runner agent the wrapper will wrap exists, is up, and is a supported version. On the runner host:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;systemctl status circleci-runner --no-pager &lt;span class="p"&gt;|&lt;/span&gt; head -5
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nv"&gt;TOKEN&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="k"&gt;$(&lt;/span&gt;curl -s -X PUT -H &lt;span class="s1"&gt;&amp;#39;X-aws-ec2-metadata-token-ttl-seconds: 60&amp;#39;&lt;/span&gt; http://169.254.169.254/latest/api/token&lt;span class="k"&gt;)&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;curl -s -H &lt;span class="s2"&gt;&amp;#34;X-aws-ec2-metadata-token: &lt;/span&gt;&lt;span class="nv"&gt;$TOKEN&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;&lt;/span&gt; http://169.254.169.254/latest/meta-data/instance-id&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;systemctl is-active circleci-runner
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;circleci-runner --version&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
 &lt;button
 class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
 title="Copy code"
@@ -42,24 +110,127 @@ data-copied-label="Copied!"
 &lt;/button&gt;
 &lt;/div&gt;
 &lt;/div&gt;
-&lt;p&gt;Expected: the runner is active, and the last command prints an instance ID such as &lt;code&gt;i-0123456789abcdef0&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Expected output:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;active
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;3.1.14&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Any version from 3.1.11 up is fine.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; if the service is not &lt;code&gt;active&lt;/code&gt; or the version is older, see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/"&gt;Troubleshooting&lt;/a&gt; and upgrade the runner first. If your unit has another name, use that name here and in later stages.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Check 1b: the host can reach the EC2 metadata service.&lt;/strong&gt; This proves the wrapper can fill &lt;code&gt;instance_id&lt;/code&gt; and &lt;code&gt;instance_type&lt;/code&gt; on every event. On the runner host:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# IMDSv2: ask for a short-lived token, then use it&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nv"&gt;TOKEN&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="k"&gt;$(&lt;/span&gt;curl -s -X PUT &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; -H &lt;span class="s1"&gt;&amp;#39;X-aws-ec2-metadata-token-ttl-seconds: 60&amp;#39;&lt;/span&gt; &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; http://169.254.169.254/latest/api/token&lt;span class="k"&gt;)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;curl -s -H &lt;span class="s2"&gt;&amp;#34;X-aws-ec2-metadata-token: &lt;/span&gt;&lt;span class="nv"&gt;$TOKEN&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;&lt;/span&gt; &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; http://169.254.169.254/latest/meta-data/instance-id&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Expected output:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;i-0123456789abcdef0&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Off EC2 you can skip this check: the EC2 fields stay empty and nothing else changes.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; an empty reply usually means IMDS is disabled or the hop limit is too low for your setup, see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/#ec2-fields-are-empty"&gt;EC2 fields are empty&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Check 1c: the tools are present.&lt;/strong&gt; This proves the wrapper&amp;rsquo;s only dependencies exist. On the runner host:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;bash --version &lt;span class="p"&gt;|&lt;/span&gt; head -1
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;curl --version &lt;span class="p"&gt;|&lt;/span&gt; head -1&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Expected output:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;curl 8.5.0 (x86_64-pc-linux-gnu) libcurl/8.5.0 OpenSSL/3.0.13&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Any bash 4 or later passes.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; install &lt;code&gt;bash&lt;/code&gt; 4 or later and &lt;code&gt;curl&lt;/code&gt; with your package manager.&lt;/p&gt;
 &lt;h2 data-hextra-search-id="2-install-the-wrapper"&gt;2. Install the wrapper&lt;span class="hx:absolute hx:-mt-20" id="2-install-the-wrapper"&gt;&lt;/span&gt;
-&lt;a href="#2-install-the-wrapper" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;On every host that runs a runner agent, from a checkout of this repository. Replace &lt;code&gt;circleci&lt;/code&gt; with the account and group your runner runs as.&lt;/p&gt;
+&lt;a href="#2-install-the-wrapper" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;Why:&lt;/strong&gt; this puts the wrapper script, its log directory and its host cache on the host, so that a job can be recorded.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Do:&lt;/strong&gt; on every host that runs a runner agent, from a checkout of this repository. Replace &lt;code&gt;circleci&lt;/code&gt; with the account and group your runner runs as.&lt;/p&gt;
+&lt;p&gt;On the runner host:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
 &lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# the wrapper&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0755&lt;/span&gt; bin/circleci-job-wrapper /usr/local/bin/circleci-job-wrapper
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -d -m &lt;span class="m"&gt;0775&lt;/span&gt; -o root -g circleci /var/log/circleci-job-wrapper
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0755&lt;/span&gt; bin/circleci-job-wrapper &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; /usr/local/bin/circleci-job-wrapper
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# the log directory: the runner user must be able to write it&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -d -m &lt;span class="m"&gt;0775&lt;/span&gt; -o root -g circleci &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; /var/log/circleci-job-wrapper
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# boot-time host cache (EC2 identity without a metadata call per job)&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0644&lt;/span&gt; systemd/circleci-job-wrapper-hostcache.service /etc/systemd/system/
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# boot-time host cache (EC2 identity without a call per job)&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0644&lt;/span&gt; &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; systemd/circleci-job-wrapper-hostcache.service &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; /etc/systemd/system/
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl daemon-reload
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl &lt;span class="nb"&gt;enable&lt;/span&gt; --now circleci-job-wrapper-hostcache.service
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl &lt;span class="nb"&gt;enable&lt;/span&gt; --now &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; circleci-job-wrapper-hostcache.service
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# daily log rotation&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0644&lt;/span&gt; logrotate/circleci-job-wrapper /etc/logrotate.d/circleci-job-wrapper
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# operator file: parsed, never sourced&lt;/span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -d /etc/circleci-job-wrapper
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0644&lt;/span&gt; logrotate/circleci-job-wrapper &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; /etc/logrotate.d/circleci-job-wrapper&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Then write the operator file. It is parsed, never sourced. On the runner host:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -d /etc/circleci-job-wrapper
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo tee /etc/circleci-job-wrapper/wrapper.env &amp;gt;/dev/null &lt;span class="s"&gt;&amp;lt;&amp;lt;&amp;#39;ENV&amp;#39;
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;CCI_RESOURCE_CLASS=my-org/linux-large
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;CCI_JOBLOG_PROM_DIR=/run/circleci-job-wrapper/prom
@@ -81,11 +252,10 @@ data-copied-label="Copied!"
 &lt;li&gt;&lt;code&gt;CCI_JOBLOG_PROM_DIR&lt;/code&gt; turns on the Prometheus busy gauge (a live busy or idle view per runner). Optional, but the fleet dashboard uses it.&lt;/li&gt;
 &lt;li&gt;&lt;code&gt;CCI_JOBLOG_PROM_JOB_ID=1&lt;/code&gt; adds &lt;code&gt;job_id&lt;/code&gt; and &lt;code&gt;workflow_id&lt;/code&gt; labels to the gauge, one series per job. Fine for small fleets. Optional.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;Check it worked:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Check 2a: the host cache is running and holds the instance ID.&lt;/strong&gt; This proves later jobs get EC2 identity from a file instead of a metadata call. On the runner host:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
 &lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;systemctl is-active circleci-job-wrapper-hostcache.service
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;grep instance_id /run/circleci-job-wrapper/host.env
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;bash -n /usr/local/bin/circleci-job-wrapper &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="nb"&gt;echo&lt;/span&gt; ok&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;grep instance_id /run/circleci-job-wrapper/host.env&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
 &lt;button
 class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
 title="Copy code"
@@ -97,10 +267,54 @@ data-copied-label="Copied!"
 &lt;/button&gt;
 &lt;/div&gt;
 &lt;/div&gt;
-&lt;p&gt;Expected: &lt;code&gt;active&lt;/code&gt;, an &lt;code&gt;instance_id=&lt;/code&gt; line, and &lt;code&gt;ok&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;More detail: &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/install/"&gt;Install&lt;/a&gt;, &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/configure/configuration/"&gt;Configuration&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Expected output:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;active
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;instance_id=i-0123456789abcdef0&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/#ec2-fields-are-empty"&gt;EC2 fields are empty&lt;/a&gt;. Off EC2, &lt;code&gt;active&lt;/code&gt; alone is enough.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Check 2b: the wrapper script parses.&lt;/strong&gt; This proves the copy on disk is intact. On the runner host:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;bash -n /usr/local/bin/circleci-job-wrapper &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; &lt;span class="nb"&gt;echo&lt;/span&gt; ok&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Expected output:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;ok&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; install the script again from the checkout. Settings are in &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/configure/configuration/"&gt;Configuration&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 data-hextra-search-id="3-configure-the-runner"&gt;3. Configure the runner&lt;span class="hx:absolute hx:-mt-20" id="3-configure-the-runner"&gt;&lt;/span&gt;
-&lt;a href="#3-configure-the-runner" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Add the prefix to &lt;code&gt;/etc/circleci-runner/circleci-runner-config.yaml&lt;/code&gt;:&lt;/p&gt;
+&lt;a href="#3-configure-the-runner" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;Why:&lt;/strong&gt; the runner only calls the wrapper once it is set as its &lt;code&gt;command_prefix&lt;/code&gt;. After this, every job writes a &lt;code&gt;job_start&lt;/code&gt; and a &lt;code&gt;job_end&lt;/code&gt; event.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Do:&lt;/strong&gt; add the prefix to &lt;code&gt;/etc/circleci-runner/circleci-runner-config.yaml&lt;/code&gt; on the runner host:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
 &lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-yaml" data-lang="yaml"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nt"&gt;runner&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;command_prefix&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;/usr/local/bin/circleci-job-wrapper&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
@@ -115,10 +329,9 @@ data-copied-label="Copied!"
 &lt;/button&gt;
 &lt;/div&gt;
 &lt;/div&gt;
-&lt;p&gt;Restart the runner, then run any job on it.&lt;/p&gt;
+&lt;p&gt;Restart the runner. On the runner host:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl restart circleci-runner
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;tail -n2 /var/log/circleci-job-wrapper/jobs.jsonl &lt;span class="p"&gt;|&lt;/span&gt; jq -c &lt;span class="s1"&gt;&amp;#39;{event,job_id,trace_id,runner_name,instance_id,resource_class,agent_status}&amp;#39;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl restart circleci-runner&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
 &lt;button
 class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
 title="Copy code"
@@ -130,10 +343,50 @@ data-copied-label="Copied!"
 &lt;/button&gt;
 &lt;/div&gt;
 &lt;/div&gt;
-&lt;p&gt;Expected: a &lt;code&gt;job_start&lt;/code&gt; and a &lt;code&gt;job_end&lt;/code&gt; line for your job, with your instance ID and resource class.&lt;/p&gt;
-&lt;p&gt;Check it worked: both events are present and &lt;code&gt;job_id&lt;/code&gt; is a UUID. If the file is empty, see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/"&gt;Troubleshooting&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;Then run any job on it. In the CircleCI web app, rerun a workflow that uses this resource class.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Check:&lt;/strong&gt; this proves the runner called the wrapper for your job and that the wrapper found the host and the resource class. After the job ends, on the runner host:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# the last two events, with the fields that matter&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;tail -n2 /var/log/circleci-job-wrapper/jobs.jsonl &lt;span class="p"&gt;|&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; jq -c &lt;span class="s1"&gt;&amp;#39;{event,job_id,trace_id,runner_name,
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s1"&gt; instance_id,resource_class,agent_status}&amp;#39;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Expected output (one line per event, wrapped here):&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;{&amp;#34;event&amp;#34;:&amp;#34;job_start&amp;#34;,&amp;#34;job_id&amp;#34;:&amp;#34;5b1e0c1a-0000-4000-8000-000000000001&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &amp;#34;trace_id&amp;#34;:&amp;#34;9f8e7d6c5b4a39281706f5e4d3c2b1a0&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &amp;#34;runner_name&amp;#34;:&amp;#34;runner-a&amp;#34;,&amp;#34;instance_id&amp;#34;:&amp;#34;i-0123456789abcdef0&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &amp;#34;resource_class&amp;#34;:&amp;#34;my-org/linux-large&amp;#34;,&amp;#34;agent_status&amp;#34;:&amp;#34;&amp;#34;}
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;{&amp;#34;event&amp;#34;:&amp;#34;job_end&amp;#34;,&amp;#34;job_id&amp;#34;:&amp;#34;5b1e0c1a-0000-4000-8000-000000000001&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &amp;#34;trace_id&amp;#34;:&amp;#34;9f8e7d6c5b4a39281706f5e4d3c2b1a0&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &amp;#34;runner_name&amp;#34;:&amp;#34;runner-a&amp;#34;,&amp;#34;instance_id&amp;#34;:&amp;#34;i-0123456789abcdef0&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &amp;#34;resource_class&amp;#34;:&amp;#34;my-org/linux-large&amp;#34;,&amp;#34;agent_status&amp;#34;:&amp;#34;completed&amp;#34;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Both events are present, &lt;code&gt;job_id&lt;/code&gt; is a UUID, and &lt;code&gt;instance_id&lt;/code&gt; and &lt;code&gt;resource_class&lt;/code&gt; are filled.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; if the file is empty or missing, see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/#jobsjsonl-is-missing-or-empty"&gt;jobs.jsonl is missing or empty&lt;/a&gt;. If &lt;code&gt;instance_id&lt;/code&gt; is empty, see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/#ec2-fields-are-empty"&gt;EC2 fields are empty&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 data-hextra-search-id="4-turn-on-circlecis-opentelemetry-export"&gt;4. Turn on CircleCI&amp;rsquo;s OpenTelemetry export&lt;span class="hx:absolute hx:-mt-20" id="4-turn-on-circlecis-opentelemetry-export"&gt;&lt;/span&gt;
-&lt;a href="#4-turn-on-circlecis-opentelemetry-export" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The wrapper knows the host. CircleCI knows the job result, the steps and their timing. You get those as OpenTelemetry spans, from an exporter you add once per organization. It needs organization admin rights, and CircleCI supports up to 5 exporters per organization. Spans are sent when each job finishes.&lt;/p&gt;
+&lt;a href="#4-turn-on-circlecis-opentelemetry-export" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;Why:&lt;/strong&gt; the wrapper knows the host. CircleCI knows the job result, the steps and their timing. You get those as OpenTelemetry spans, from an exporter you add once per organization.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Do:&lt;/strong&gt; add the exporter in the CircleCI web app (option A) or with the API (option B). It needs organization admin rights, and CircleCI supports up to 5 exporters per organization. Spans are sent when each job finishes.&lt;/p&gt;
 &lt;p&gt;If your collector restricts source IPs, allow CircleCI&amp;rsquo;s core IPs. List them with &lt;code&gt;dig core.knownips.circleci.com&lt;/code&gt;. Grafana Cloud needs no allow-list.&lt;/p&gt;
 &lt;p&gt;Official documentation: &lt;a href="https://circleci.com/docs/guides/integration/open-telemetry-integration/" target="_blank" rel="noopener"&gt;OpenTelemetry integration&lt;/a&gt; and the &lt;a href="https://circleci.com/docs/api/v2/#tag/OTel" target="_blank" rel="noopener"&gt;API reference&lt;/a&gt;.&lt;/p&gt;
 &lt;h3 data-hextra-search-id="grafana-cloud-values"&gt;Grafana Cloud values&lt;span class="hx:absolute hx:-mt-20" id="grafana-cloud-values"&gt;&lt;/span&gt;
@@ -159,7 +412,20 @@ data-copied-label="Copied!"
 &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
-&lt;p&gt;Build the header value with &lt;code&gt;printf '%s' '&amp;lt;instance-id&amp;gt;:&amp;lt;token&amp;gt;' | base64 -w0&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;On your workstation, build the header value:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nb"&gt;printf&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;%s&amp;#39;&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;&amp;lt;instance-id&amp;gt;:&amp;lt;token&amp;gt;&amp;#39;&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; base64 -w0&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
 &lt;div
 data-alert="note" class="hextra-alert"
 &gt;
@@ -168,18 +434,20 @@ data-alert="note" class="hextra-alert"
 &lt;/p&gt;
 &lt;div class="hextra-alert-content"&gt;&lt;p&gt;&lt;code&gt;&amp;lt;region&amp;gt;&lt;/code&gt; is the region of your &lt;strong&gt;stack&lt;/strong&gt;. Take it from your data source URLs or from the OTLP tile of your stack. It is not necessarily the region embedded in the token.&lt;/p&gt;&lt;/div&gt;
 &lt;/div&gt;
-&lt;h3 data-hextra-search-id="option-a-the-circleci-ui"&gt;Option A: the CircleCI UI&lt;span class="hx:absolute hx:-mt-20" id="option-a-the-circleci-ui"&gt;&lt;/span&gt;
-&lt;a href="#option-a-the-circleci-ui" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ol&gt;
+&lt;h3 data-hextra-search-id="option-a-the-circleci-web-app"&gt;Option A: the CircleCI web app&lt;span class="hx:absolute hx:-mt-20" id="option-a-the-circleci-web-app"&gt;&lt;/span&gt;
+&lt;a href="#option-a-the-circleci-web-app" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;In the CircleCI web app:&lt;/p&gt;
+&lt;ol&gt;
 &lt;li&gt;Open &lt;strong&gt;Organization settings&lt;/strong&gt;, then &lt;strong&gt;OpenTelemetry Configuration&lt;/strong&gt;.&lt;/li&gt;
 &lt;li&gt;Choose &lt;strong&gt;Add exporter&lt;/strong&gt;.&lt;/li&gt;
 &lt;li&gt;Pick the protocol (&lt;code&gt;http&lt;/code&gt;), enter the endpoint, and add the header.&lt;/li&gt;
 &lt;li&gt;Save.&lt;/li&gt;
 &lt;/ol&gt;
 &lt;h3 data-hextra-search-id="option-b-the-api"&gt;Option B: the API&lt;span class="hx:absolute hx:-mt-20" id="option-b-the-api"&gt;&lt;/span&gt;
-&lt;a href="#option-b-the-api" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;Use an organization admin personal API token.&lt;/p&gt;
+&lt;a href="#option-b-the-api" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;p&gt;Use an organization admin personal API token. On your workstation:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
 &lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;curl -sS -X POST https://circleci.com/api/v2/otel/exporters &lt;span class="se"&gt;\
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; -H &lt;span class="s2"&gt;&amp;#34;Circle-Token: &lt;/span&gt;&lt;span class="nv"&gt;$CIRCLECI_TOKEN&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;&lt;/span&gt; -H &lt;span class="s1"&gt;&amp;#39;Content-Type: application/json&amp;#39;&lt;/span&gt; &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; -H &lt;span class="s2"&gt;&amp;#34;Circle-Token: &lt;/span&gt;&lt;span class="nv"&gt;$CIRCLECI_TOKEN&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;&lt;/span&gt; &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; -H &lt;span class="s1"&gt;&amp;#39;Content-Type: application/json&amp;#39;&lt;/span&gt; &lt;span class="se"&gt;\
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; -d &lt;span class="s1"&gt;&amp;#39;{
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s1"&gt; &amp;#34;org_id&amp;#34;: &amp;#34;&amp;lt;your-org-id&amp;gt;&amp;#34;,
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s1"&gt; &amp;#34;endpoint&amp;#34;: &amp;#34;https://otlp-gateway-&amp;lt;region&amp;gt;.grafana.net/otlp/v1/traces&amp;#34;,
@@ -226,7 +494,7 @@ data-copied-label="Copied!"
 &lt;/tr&gt;
 &lt;tr&gt;
 &lt;td&gt;step&lt;/td&gt;
-&lt;td&gt;One step, named &lt;code&gt;Step: &amp;lt;name&amp;gt;&lt;/code&gt;, with its duration and &lt;code&gt;com.circleci.task.result&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;One step, named &lt;code&gt;Step: &amp;lt;name&amp;gt;&lt;/code&gt;, with its duration, its result (&lt;code&gt;com.circleci.task.result&lt;/code&gt;) and its exit code (&lt;code&gt;com.circleci.step.exit_code&lt;/code&gt;)&lt;/td&gt;
 &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
@@ -239,7 +507,7 @@ data-copied-label="Copied!"
 &lt;li&gt;The &lt;strong&gt;trace ID&lt;/strong&gt; is the pipeline ID without dashes. It equals the wrapper&amp;rsquo;s &lt;code&gt;trace_id&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;The spans carry &lt;strong&gt;no CPU or memory and no host identity&lt;/strong&gt;. The wrapper adds the host and the job&amp;rsquo;s CPU time, and the shipper in stage 5 adds host and cgroup metrics.&lt;/p&gt;
-&lt;p&gt;Check it worked: run a job, wait for it to finish, then in Grafana open &lt;strong&gt;Explore&lt;/strong&gt;, pick your Tempo data source and run this TraceQL query:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Check:&lt;/strong&gt; this proves CircleCI is exporting spans, that your backend accepts them, and that the join key reaches Tempo. Run a job on the runner and wait for it to finish. Then in the Grafana web app, open &lt;strong&gt;Explore&lt;/strong&gt;, pick your Tempo data source and run this TraceQL query:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
 &lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;{ span.com.circleci.job.id != &amp;#34;&amp;#34; }&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
 &lt;button
@@ -253,10 +521,26 @@ data-copied-label="Copied!"
 &lt;/button&gt;
 &lt;/div&gt;
 &lt;/div&gt;
-&lt;p&gt;Expected: spans for your job. If nothing shows, re-check the region and the header, and the exporter list in &lt;strong&gt;OpenTelemetry Configuration&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;Expected output: a list of traces, one per job, such as:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;Trace ID Start time Name
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;9f8e7d6c5b4a39281706f5e4d3c2b1a0 2026-11-18 20:31:55 workflow build&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Open one: it has a &lt;code&gt;job&lt;/code&gt; span whose &lt;code&gt;com.circleci.job.id&lt;/code&gt; equals the &lt;code&gt;job_id&lt;/code&gt; you saw in stage 3.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; re-check the stack region and the header, and the exporter list in &lt;strong&gt;OpenTelemetry Configuration&lt;/strong&gt;. Spans can take a minute to appear. See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/join-with-opentelemetry/"&gt;Join data with CircleCI OpenTelemetry&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 data-hextra-search-id="5-install-and-configure-the-shipper"&gt;5. Install and configure the shipper&lt;span class="hx:absolute hx:-mt-20" id="5-install-and-configure-the-shipper"&gt;&lt;/span&gt;
-&lt;a href="#5-install-and-configure-the-shipper" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The shipper moves &lt;code&gt;jobs.jsonl&lt;/code&gt;, host metrics and per-job CPU and memory to your backend. This guide uses Grafana Alloy, the tested example. The Datadog Agent is &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-datadog/"&gt;documented but not tested&lt;/a&gt;.&lt;/p&gt;
-&lt;p&gt;Install Alloy by following Grafana&amp;rsquo;s instructions, then:&lt;/p&gt;
+&lt;a href="#5-install-and-configure-the-shipper" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;Why:&lt;/strong&gt; the shipper moves &lt;code&gt;jobs.jsonl&lt;/code&gt;, host metrics and per-job CPU and memory to your backend. This guide uses Grafana Alloy, the tested example. The Datadog Agent is &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-datadog/"&gt;documented but not tested&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Do:&lt;/strong&gt; install Alloy by following Grafana&amp;rsquo;s instructions, then configure it. On the runner host:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
 &lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# env file of the alloy service, for example /etc/default/alloy&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo tee -a /etc/default/alloy &amp;gt;/dev/null &lt;span class="s"&gt;&amp;lt;&amp;lt;&amp;#39;ENV&amp;#39;
@@ -267,10 +551,11 @@ data-copied-label="Copied!"
 &lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="s"&gt;ENV&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo chmod &lt;span class="m"&gt;0640&lt;/span&gt; /etc/default/alloy
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# let alloy read the log, the textfile directory and the journal&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;# let alloy read the log, the textfile directory, the journal&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo usermod -aG circleci,systemd-journal alloy
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0644&lt;/span&gt; examples/alloy/config.alloy /etc/alloy/config.alloy
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0644&lt;/span&gt; examples/alloy/config.alloy &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; /etc/alloy/config.alloy
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl restart alloy&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
 &lt;button
 class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
@@ -293,10 +578,11 @@ data-copied-label="Copied!"
 &lt;li&gt;&lt;strong&gt;EC2 identity.&lt;/strong&gt; &lt;code&gt;resourcedetection&lt;/code&gt; sets &lt;code&gt;host.id&lt;/code&gt;, and a transform copies it into an &lt;code&gt;instance_id&lt;/code&gt; attribute on metrics.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Export.&lt;/strong&gt; OTLP over HTTP with basic auth.&lt;/li&gt;
 &lt;/ol&gt;
-&lt;p&gt;Check it worked:&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Check 5a: Alloy runs without errors.&lt;/strong&gt; This proves the config loads and the shipper is running. On the runner host:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
 &lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl is-active alloy
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo journalctl -u alloy -n &lt;span class="m"&gt;20&lt;/span&gt; --no-pager &lt;span class="p"&gt;|&lt;/span&gt; grep -i error &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="nb"&gt;echo&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;no errors&amp;#34;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo journalctl -u alloy -n &lt;span class="m"&gt;20&lt;/span&gt; --no-pager &lt;span class="p"&gt;|&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; grep -i error &lt;span class="o"&gt;||&lt;/span&gt; &lt;span class="nb"&gt;echo&lt;/span&gt; &lt;span class="s2"&gt;&amp;#34;no errors&amp;#34;&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
 &lt;button
 class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
 title="Copy code"
@@ -308,13 +594,77 @@ data-copied-label="Copied!"
 &lt;/button&gt;
 &lt;/div&gt;
 &lt;/div&gt;
-&lt;p&gt;Then in Grafana &lt;strong&gt;Explore&lt;/strong&gt;, Loki: &lt;code&gt;{service_name=&amp;quot;circleci-job-wrapper&amp;quot;}&lt;/code&gt; shows job events. In Prometheus, &lt;code&gt;circleci_runner_busy&lt;/code&gt; and &lt;code&gt;container_cpu_usage_seconds_total{cgroup=~&amp;quot;/system.slice/circleci-runner.*&amp;quot;}&lt;/code&gt; return series.&lt;/p&gt;
-&lt;p&gt;More detail: &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-alloy/"&gt;Ship with Grafana Alloy&lt;/a&gt;.&lt;/p&gt;
-&lt;h2 data-hextra-search-id="6-import-the-dashboards"&gt;6. Import the dashboards&lt;span class="hx:absolute hx:-mt-20" id="6-import-the-dashboards"&gt;&lt;/span&gt;
-&lt;a href="#6-import-the-dashboards" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Generate the dashboard JSON with the UIDs of your data sources. Find them under &lt;strong&gt;Connections, Data sources&lt;/strong&gt; (the UID is in the URL).&lt;/p&gt;
+&lt;p&gt;Expected output:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;python3 examples/grafana/build_dashboard.py --prom &amp;lt;prom-uid&amp;gt; --loki &amp;lt;loki-uid&amp;gt; --tempo &amp;lt;tempo-uid&amp;gt; &amp;gt; dashboard.json
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;python3 examples/grafana/build_job_dashboard.py --prom &amp;lt;prom-uid&amp;gt; --loki &amp;lt;loki-uid&amp;gt; --tempo &amp;lt;tempo-uid&amp;gt; &amp;gt; job-dashboard.json&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;active
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;no errors&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; a permission error means &lt;code&gt;alloy&lt;/code&gt; is not yet in the runner group, see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/#alloy-cannot-read-the-log-or-the-journal"&gt;Alloy cannot read the log or the journal&lt;/a&gt;. A 401 means the user or token in &lt;code&gt;/etc/default/alloy&lt;/code&gt; is wrong.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Check 5b: your backend receives the logs and the metrics.&lt;/strong&gt; This proves data arrives, not only that Alloy runs. In the Grafana web app, open &lt;strong&gt;Explore&lt;/strong&gt;, pick the Loki data source and run:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;{service_name=&amp;#34;circleci-job-wrapper&amp;#34;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Expected output: log lines, one per job event, such as &lt;code&gt;{&amp;quot;schema&amp;quot;:1,&amp;quot;event&amp;quot;:&amp;quot;job_end&amp;quot;, ...}&lt;/code&gt;. Then pick the Prometheus data source and run:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;circleci_runner_busy&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Expected output: one series per runner:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;circleci_runner_busy{runner=&amp;#34;runner-a&amp;#34;,
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; instance_id=&amp;#34;i-0123456789abcdef0&amp;#34;} 0&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied!"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;code&gt;container_cpu_usage_seconds_total{cgroup=~&amp;quot;/system.slice/circleci-runner.*&amp;quot;}&lt;/code&gt; should return series too.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; nothing in Loki means Alloy cannot read the log. Nothing for &lt;code&gt;circleci_runner_busy&lt;/code&gt; means &lt;code&gt;CCI_JOBLOG_PROM_DIR&lt;/code&gt; is unset (stage 2). See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/ship-with-alloy/"&gt;Ship with Grafana Alloy&lt;/a&gt; and &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/"&gt;Troubleshooting&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 data-hextra-search-id="6-import-the-dashboards"&gt;6. Import the dashboards&lt;span class="hx:absolute hx:-mt-20" id="6-import-the-dashboards"&gt;&lt;/span&gt;
+&lt;a href="#6-import-the-dashboards" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;Why:&lt;/strong&gt; the dashboards turn the events, spans and metrics into the fleet, job, runner and resource class views.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Do:&lt;/strong&gt; find the UIDs of your data sources in the Grafana web app, under &lt;strong&gt;Connections, Data sources&lt;/strong&gt; (the UID is in the URL). Then generate the dashboard JSON. On your workstation, from a checkout of this repository:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;python3 examples/grafana/build_dashboard.py &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; --prom &amp;lt;prom-uid&amp;gt; --loki &amp;lt;loki-uid&amp;gt; --tempo &amp;lt;tempo-uid&amp;gt; &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &amp;gt; dashboard.json
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;python3 examples/grafana/build_job_dashboard.py &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; --prom &amp;lt;prom-uid&amp;gt; --loki &amp;lt;loki-uid&amp;gt; --tempo &amp;lt;tempo-uid&amp;gt; &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &amp;gt; job-dashboard.json&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
 &lt;button
 class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
 title="Copy code"
@@ -330,14 +680,16 @@ data-copied-label="Copied!"
 &lt;p&gt;Import them either way:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;UI:&lt;/strong&gt; Dashboards, New, Import, upload each JSON file.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;In the Grafana web app:&lt;/strong&gt; Dashboards, New, Import, upload each JSON file.&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;strong&gt;API:&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;With the API,&lt;/strong&gt; on your workstation:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;jq -n --slurpfile d dashboard.json &lt;span class="s1"&gt;&amp;#39;{dashboard: $d[0], overwrite: true}&amp;#39;&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;jq -n --slurpfile d dashboard.json &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="s1"&gt;&amp;#39;{dashboard: $d[0], overwrite: true}&amp;#39;&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt;
 &lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; curl -sS -X POST &lt;span class="s2"&gt;&amp;#34;&lt;/span&gt;&lt;span class="nv"&gt;$GRAFANA_URL&lt;/span&gt;&lt;span class="s2"&gt;/api/dashboards/db&amp;#34;&lt;/span&gt; &lt;span class="se"&gt;\
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; -H &lt;span class="s2"&gt;&amp;#34;Authorization: Bearer &lt;/span&gt;&lt;span class="nv"&gt;$GRAFANA_TOKEN&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;&lt;/span&gt; -H &lt;span class="s1"&gt;&amp;#39;Content-Type: application/json&amp;#39;&lt;/span&gt; -d @-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; -H &lt;span class="s2"&gt;&amp;#34;Authorization: Bearer &lt;/span&gt;&lt;span class="nv"&gt;$GRAFANA_TOKEN&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;&lt;/span&gt; &lt;span class="se"&gt;\
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; -H &lt;span class="s1"&gt;&amp;#39;Content-Type: application/json&amp;#39;&lt;/span&gt; -d @-&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
 &lt;button
 class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
 title="Copy code"
@@ -352,29 +704,30 @@ data-copied-label="Copied!"
 &lt;p&gt;Repeat for &lt;code&gt;job-dashboard.json&lt;/code&gt;.&lt;/p&gt;
 &lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;More dashboards, such as runner detail and resource class detail, are being added. See the &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/dashboards/example-dashboard/"&gt;dashboards page&lt;/a&gt; for the current list.&lt;/p&gt;
-&lt;p&gt;Check it worked: the &lt;strong&gt;CircleCI runner fleet&lt;/strong&gt; dashboard opens, and &amp;ldquo;Fleet right now&amp;rdquo; shows your runners.&lt;/p&gt;
+&lt;p&gt;The runner detail and resource class dashboards are generated the same way, see the &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/dashboards/example-dashboard/"&gt;dashboards page&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Check:&lt;/strong&gt; this proves the dashboards import and can read your data. In the Grafana web app, open the &lt;strong&gt;CircleCI runner fleet&lt;/strong&gt; dashboard and look at the &lt;strong&gt;Fleet right now&lt;/strong&gt; row.&lt;/p&gt;
+&lt;p&gt;Expected output: the dashboard opens, and the row shows your runners as busy or idle, with a table of what each is running now. The &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/dashboards/example-dashboard/#tour-of-the-dashboards"&gt;tour&lt;/a&gt; shows what it looks like.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; a &amp;ldquo;No data&amp;rdquo; row means a data source UID is wrong or stage 5 is not shipping yet. Re-run the builder with the right UIDs, and see &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/"&gt;Troubleshooting&lt;/a&gt;.&lt;/p&gt;
 &lt;h2 data-hextra-search-id="7-verify-the-join"&gt;7. Verify the join&lt;span class="hx:absolute hx:-mt-20" id="7-verify-the-join"&gt;&lt;/span&gt;
-&lt;a href="#7-verify-the-join" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ol&gt;
+&lt;a href="#7-verify-the-join" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;Why:&lt;/strong&gt; this proves the three sources meet for one job: the wrapper (host), CircleCI spans (result and steps) and the shipper (CPU and memory).&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Do:&lt;/strong&gt; in the Grafana web app:&lt;/p&gt;
+&lt;ol&gt;
 &lt;li&gt;On the fleet dashboard, open &lt;strong&gt;Recent jobs&lt;/strong&gt; and pick a job.&lt;/li&gt;
 &lt;li&gt;Click &lt;strong&gt;Drill into this job&lt;/strong&gt;. The job-detail dashboard opens, already filtered to that job.&lt;/li&gt;
-&lt;li&gt;Confirm you see:
+&lt;/ol&gt;
+&lt;p&gt;&lt;strong&gt;Check:&lt;/strong&gt; confirm you see the following. Each item matches an image in the &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/dashboards/example-dashboard/#tour-of-the-dashboards"&gt;tour&lt;/a&gt;: the first two are in the job trace image (4), the last two in the steps and resources image (5).&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Where and when it ran&lt;/strong&gt;: the instance, runner, resource class and cgroup, from the wrapper.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;The trace&lt;/strong&gt;: pipeline, workflow, job and steps, from CircleCI spans.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Steps, slowest first&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Steps, slowest first&lt;/strong&gt;, each with its &lt;strong&gt;step status&lt;/strong&gt; (ok or failed, from the span status) and its &lt;strong&gt;exit code&lt;/strong&gt; (&lt;code&gt;com.circleci.step.exit_code&lt;/code&gt;).&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Resources used during this job&lt;/strong&gt;: CPU and memory of the runner&amp;rsquo;s cgroup, the job&amp;rsquo;s CPU time, and host metrics.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;If the trace panel is empty, the span export (stage 4) is the usual cause: check the exporter, then that &lt;code&gt;trace_id&lt;/code&gt; in the wrapper event equals the trace ID in Tempo. If the CPU panels are empty, check the cAdvisor block and the &lt;code&gt;cgroup&lt;/code&gt; value in the event.&lt;/p&gt;
-&lt;p&gt;You now have the full setup. &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/dashboards/example-dashboard/"&gt;Example Grafana dashboards&lt;/a&gt; describes every panel, and &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/"&gt;Troubleshooting&lt;/a&gt; covers the common failures.&lt;/p&gt;</description></item><item><title>Install</title><link>https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/install/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/install/</guid><description>
-&lt;p&gt;Install the wrapper on every host that runs a machine runner. You need machine runner 3.1.11 or later on Linux, with &lt;code&gt;bash&lt;/code&gt; 4 or later and the POSIX utilities &lt;code&gt;date&lt;/code&gt;, &lt;code&gt;curl&lt;/code&gt;, &lt;code&gt;mkdir&lt;/code&gt;, &lt;code&gt;mv&lt;/code&gt; and &lt;code&gt;rm&lt;/code&gt;.&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;
-&lt;p&gt;Install the wrapper.&lt;/p&gt;
+&lt;p&gt;Expected output: all four are filled. For example, the where-and-when panel shows:&lt;/p&gt;
 &lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0755&lt;/span&gt; bin/circleci-job-wrapper /usr/local/bin/circleci-job-wrapper&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-text" data-lang="text"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;instance i-0123456789abcdef0
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;runner runner-a
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;resource my-org/linux-large
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;job status success&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
 &lt;button
 class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
 title="Copy code"
@@ -386,117 +739,5 @@ data-copied-label="Copied!"
 &lt;/button&gt;
 &lt;/div&gt;
 &lt;/div&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Create the directories. The runner user must be able to write both.&lt;/p&gt;
-&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -d -m &lt;span class="m"&gt;0775&lt;/span&gt; -o root -g circleci /var/log/circleci-job-wrapper
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -d -m &lt;span class="m"&gt;1777&lt;/span&gt; /run/circleci-job-wrapper &lt;span class="c1"&gt;# or let systemd do it, see step 3&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
-&lt;button
-class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
-title="Copy code"
-aria-label="Copy code"
-data-copied-label="Copied!"
-&gt;
-&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;/button&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Install the boot-time host cache (recommended).&lt;/p&gt;
-&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0644&lt;/span&gt; systemd/circleci-job-wrapper-hostcache.service /etc/systemd/system/
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl daemon-reload
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo systemctl &lt;span class="nb"&gt;enable&lt;/span&gt; --now circleci-job-wrapper-hostcache.service&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
-&lt;button
-class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
-title="Copy code"
-aria-label="Copy code"
-data-copied-label="Copied!"
-&gt;
-&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;/button&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Install log rotation (recommended).&lt;/p&gt;
-&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -m &lt;span class="m"&gt;0644&lt;/span&gt; logrotate/circleci-job-wrapper /etc/logrotate.d/circleci-job-wrapper&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
-&lt;button
-class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
-title="Copy code"
-aria-label="Copy code"
-data-copied-label="Copied!"
-&gt;
-&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;/button&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Set the resource class (recommended). The file is parsed, never sourced.&lt;/p&gt;
-&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;sudo install -d /etc/circleci-job-wrapper
-&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nb"&gt;echo&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;CCI_RESOURCE_CLASS=my-org/linux-large&amp;#39;&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; sudo tee /etc/circleci-job-wrapper/wrapper.env&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
-&lt;button
-class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
-title="Copy code"
-aria-label="Copy code"
-data-copied-label="Copied!"
-&gt;
-&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;/button&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Add the prefix to the runner config (&lt;code&gt;/etc/circleci-runner/circleci-runner-config.yaml&lt;/code&gt;), then restart the runner.&lt;/p&gt;
-&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-yaml" data-lang="yaml"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="nt"&gt;runner&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nt"&gt;command_prefix&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s2"&gt;&amp;#34;/usr/local/bin/circleci-job-wrapper&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
-&lt;button
-class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
-title="Copy code"
-aria-label="Copy code"
-data-copied-label="Copied!"
-&gt;
-&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;/button&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;Run a job and check the log.&lt;/p&gt;
-&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
-&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sh" data-lang="sh"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;tail -n2 /var/log/circleci-job-wrapper/jobs.jsonl&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
-&lt;button
-class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
-title="Copy code"
-aria-label="Copy code"
-data-copied-label="Copied!"
-&gt;
-&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
-&lt;/button&gt;
-&lt;/div&gt;
-&lt;/div&gt;
-&lt;/li&gt;
-&lt;/ol&gt;
-&lt;p&gt;Replace &lt;code&gt;circleci&lt;/code&gt; with the account and group your runner service runs as.&lt;/p&gt;
-&lt;h2 data-hextra-search-id="what-the-host-cache-unit-does"&gt;What the host cache unit does&lt;span class="hx:absolute hx:-mt-20" id="what-the-host-cache-unit-does"&gt;&lt;/span&gt;
-&lt;a href="#what-the-host-cache-unit-does" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The unit runs &lt;code&gt;circleci-job-wrapper --refresh-host-cache&lt;/code&gt; once per boot. It creates two directories:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;code&gt;/run/circleci-job-wrapper&lt;/code&gt;, sticky with mode 1777, so runner accounts can write state files but cannot replace the root-owned &lt;code&gt;host.env&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;code&gt;/var/log/circleci-job-wrapper&lt;/code&gt;, mode 0775. Add a &lt;code&gt;Group=&lt;/code&gt; in a drop-in to match the runner group.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2 data-hextra-search-id="several-runner-agents-on-one-host"&gt;Several runner agents on one host&lt;span class="hx:absolute hx:-mt-20" id="several-runner-agents-on-one-host"&gt;&lt;/span&gt;
-&lt;a href="#several-runner-agents-on-one-host" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Agents on one host share the wrapper, the log file and the cache. This was tested with two systemd units (&lt;code&gt;circleci-runner&lt;/code&gt; and &lt;code&gt;circleci-runner-b&lt;/code&gt;), each with its own &lt;code&gt;-c&lt;/code&gt; config file and &lt;code&gt;runner.name&lt;/code&gt;. The wrapper reads the name from the parent&amp;rsquo;s &lt;code&gt;-c&lt;/code&gt; or &lt;code&gt;--config&lt;/code&gt; argument, so nothing more is needed, and events from both interleave safely. Set &lt;code&gt;CCI_RUNNER_NAME&lt;/code&gt; in a unit&amp;rsquo;s environment only to override the name.&lt;/p&gt;
-&lt;h2 data-hextra-search-id="run-the-tests"&gt;Run the tests&lt;span class="hx:absolute hx:-mt-20" id="run-the-tests"&gt;&lt;/span&gt;
-&lt;a href="#run-the-tests" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;make check&lt;/code&gt; runs shellcheck and the bats tests. It needs &lt;code&gt;bats&lt;/code&gt;, &lt;code&gt;jq&lt;/code&gt;, &lt;code&gt;python3&lt;/code&gt; and &lt;code&gt;curl&lt;/code&gt;. &lt;code&gt;strace&lt;/code&gt; and &lt;code&gt;iconv&lt;/code&gt; are used when present.&lt;/p&gt;</description></item></channel></rss>
+&lt;p&gt;&lt;strong&gt;If it fails:&lt;/strong&gt; if the trace panel is empty, the span export (stage 4) is the usual cause. Check the exporter, then that &lt;code&gt;trace_id&lt;/code&gt; in the wrapper event equals the trace ID in Tempo. If the CPU panels are empty, check the cAdvisor block (stage 5) and the &lt;code&gt;cgroup&lt;/code&gt; value in the event. See &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/"&gt;Troubleshooting&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;You now have the full setup. &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/dashboards/example-dashboard/"&gt;Example Grafana dashboards&lt;/a&gt; describes every panel, &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/run-several-runners-and-upgrade/"&gt;Several runners, upgrades and removal&lt;/a&gt; covers day-two tasks, and &lt;a href="https://circleci-labs.github.io/runner-job-wrapper/docs/operate/troubleshooting/"&gt;Troubleshooting&lt;/a&gt; covers the common failures.&lt;/p&gt;</description></item></channel></rss>

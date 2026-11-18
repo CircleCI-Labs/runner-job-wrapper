@@ -83,7 +83,17 @@ Only the first group is required.
    tail -n2 /var/log/circleci-job-wrapper/jobs.jsonl
    ```
 
-Replace `circleci` with the account and group your runner runs as. [Install](https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/install/) has log rotation and the multi-runner setup.
+Replace `circleci` with the account and group your runner runs as. [Several runners, upgrades and removal](https://circleci-labs.github.io/runner-job-wrapper/docs/operate/run-several-runners-and-upgrade/) covers the multi-runner setup, upgrades and uninstalling.
+
+## See it
+
+Pipeline performance, the trace of one job, and one runner. [Tour of the dashboards](https://circleci-labs.github.io/runner-job-wrapper/docs/dashboards/example-dashboard/#tour-of-the-dashboards) shows the full drill-down.
+
+![Pipeline performance: success rate, wall time and slowest jobs from CircleCI spans](https://circleci-labs.github.io/runner-job-wrapper/images/tour/1-pipeline-performance.png)
+
+![One job: where it ran and its trace, pipeline to steps](https://circleci-labs.github.io/runner-job-wrapper/images/tour/4-job-trace.png)
+
+![One runner: status, jobs taken, failures, busy time and CPU](https://circleci-labs.github.io/runner-job-wrapper/images/tour/6-runner-detail.png)
 
 ## What you get
 
@@ -138,7 +148,7 @@ Read the docs at [circleci-labs.github.io/runner-job-wrapper](https://circleci-l
 | You want to | Read |
 |---|---|
 | Set it all up | [Set it up end to end](https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/set-up-end-to-end/) |
-| Install the wrapper only | [Install](https://circleci-labs.github.io/runner-job-wrapper/docs/get-started/install/) |
+| Run several runners, upgrade or remove it | [Several runners, upgrades and removal](https://circleci-labs.github.io/runner-job-wrapper/docs/operate/run-several-runners-and-upgrade/) |
 | Change a setting | [Configuration](https://circleci-labs.github.io/runner-job-wrapper/docs/configure/configuration/) |
 | Know what is logged | [Event schema](https://circleci-labs.github.io/runner-job-wrapper/docs/reference/event-schema/) |
 | Join it with CircleCI spans | [Join data with CircleCI OpenTelemetry](https://circleci-labs.github.io/runner-job-wrapper/docs/send-the-data/join-with-opentelemetry/) |

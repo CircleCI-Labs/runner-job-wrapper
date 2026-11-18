@@ -88,8 +88,8 @@ params:
       - icon: box
         title: No dependencies
         text: One bash script, no daemon and no jq. About 6 ms per job.
-        link: docs/get-started/install/
-        linkText: Install
+        link: docs/get-started/set-up-end-to-end/
+        linkText: Set it up
       - icon: refresh-cw
         title: Any backend
         text: JSONL on disk. Alloy example tested with Grafana Cloud, Datadog Agent documented, plus an example Grafana dashboard.

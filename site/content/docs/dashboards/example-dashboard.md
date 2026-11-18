@@ -12,6 +12,52 @@ python3 examples/grafana/build_dashboard.py --prom <prom-uid> --loki <loki-uid> 
 
 For CircleCI Server, also pass `--app-url` so the links point at your installation. The dashboard needs the [Alloy example]({{< relref "/docs/send-the-data/ship-with-alloy.md" >}}) data, and the CircleCI spans for the span panels.
 
+## Tour of the dashboards
+
+Follow one path from the fleet down to a single job, a runner and a resource class. Every dashboard links to the next, so you rarely type a variable by hand.
+
+### 1. Pipeline performance
+
+![Pipeline performance: workflows, success rate, median and P95 wall time, workflows by result, slowest jobs and recent workflows](../../../images/tour/1-pipeline-performance.png)
+
+The top of the fleet dashboard, from CircleCI spans: workflows, success rate, median and P95 wall time, workflows by result, the slowest jobs and recent workflows. Use the branch filter to compare branches, then scroll down to see which runners did the work.
+
+### 2. The fleet right now
+
+![Fleet right now: busy and idle runners and what each runner is running](../../../images/tour/2-fleet-right-now.png)
+
+Busy and idle runners, and what each runner is running now, from the busy gauge. Click a runner name to open its runner detail, a job ID to open the job detail, or a job name to open the job in CircleCI.
+
+### 3. Jobs per host
+
+![Jobs per host, job results per host, failed jobs per host over time and live step activity](../../../images/tour/3-jobs-per-host.png)
+
+Jobs per host, job results per host, and failed jobs per host over time. A spike of failures on one host is a wedged worker. Live step activity shows what the task agent is doing. Click a host or a job to go deeper.
+
+### 4. The job trace
+
+![Job detail: where and when the job ran, its result and the full trace timeline](../../../images/tour/4-job-trace.png)
+
+Job detail. The top shows where and when the job ran (EC2 instance, runner, cgroup) and the CircleCI job result. Below is the full trace timeline: pipeline, workflow, job and steps. Scroll down for the steps and resources.
+
+### 5. Steps and the resources the job used
+
+![Job steps slowest first with step status and exit code, live step progress, and the job's CPU and memory](../../../images/tour/5-job-steps-and-resources.png)
+
+Steps, slowest first, each with its step status (ok or failed, from the span status) and its exit code, from CircleCI step spans. Next are the live step progress from the task agent log, and the job's own CPU and memory (the runner's cgroup) with the CPU time the job used. A slow step with high CPU is compute-bound. A slow step with low CPU is waiting.
+
+### 6. The runner
+
+![Runner detail: status, jobs taken, failures, busy percentage, CPU time, CPU and memory, jobs and results over time](../../../images/tour/6-runner-detail.png)
+
+Runner detail, reached by clicking a runner name. It shows status, jobs taken, failures, busy percentage, CPU time, the runner's CPU and memory, and jobs and results over time. Click the resource class to see the whole class.
+
+### 7. The resource class
+
+![Resource class: runners, busy now, utilization, job counts and durations, runners in the class and load per runner](../../../images/tour/7-resource-class.png)
+
+Resource class: runners, busy now, utilization, job counts and P50 and P95 durations, the runners in the class and the load per runner. Use it to decide whether the class needs more or fewer runners.
+
 ## Fleet dashboard
 
 ![The CircleCI runner fleet dashboard: pipeline performance, fleet right now, host health, jobs per host and recent jobs](../../../images/fleet-dashboard.png)
@@ -38,7 +84,7 @@ Job, workflow and pipeline IDs link to the CircleCI UI (`build_url`, `workflow_u
 
 - **Where and when it ran**, from the wrapper, and the **result**, from the CircleCI job span.
 - **The full trace timeline**: pipeline, workflow, job and steps.
-- **Steps, slowest first**, from step spans.
+- **Steps, slowest first**, from step spans, with each step's **step status** (ok or failed, from the span status) and **exit code** (`com.circleci.step.exit_code`).
 - **Live step progress** as it happened, from the task-agent log on the host (experimental).
 - **Job CPU and memory** of the runner's service cgroup, from cAdvisor via the Alloy example.
 - **CPU time** of the job (`cpu_user_ms`, `cpu_sys_ms`) from the wrapper.
