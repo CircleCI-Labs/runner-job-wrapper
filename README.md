@@ -2,7 +2,6 @@
 
 A small bash `command_prefix` wrapper for CircleCI machine runner that records which job ran on which host (EC2 instance, runner agent, resource class), with the CircleCI job, workflow and pipeline IDs and links, so you can join CircleCI OpenTelemetry spans with host metrics and logs in any observability backend.
 
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/CircleCI-Labs/runner-job-wrapper/tree/main.svg?style=shield)](https://dl.circleci.com/status-badge/redirect/gh/CircleCI-Labs/runner-job-wrapper/tree/main)
 [![Release](https://img.shields.io/github/v/release/CircleCI-Labs/runner-job-wrapper?include_prereleases&label=release)](https://github.com/CircleCI-Labs/runner-job-wrapper/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![CircleCI Community](https://img.shields.io/badge/community-CircleCI%20Discuss-343434.svg)](https://discuss.circleci.com/)
