@@ -60,7 +60,7 @@ Expected output:
 
 ```text
 active
-3.1.14
+circleci-runner version 3.1.14-10146-3ce7306 (built 2026-10-20T23:31:41Z)
 ```
 
 Any version from 3.1.11 up is fine.
