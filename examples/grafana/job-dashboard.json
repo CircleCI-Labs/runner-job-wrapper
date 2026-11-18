@@ -1,0 +1,895 @@
+{
+ "uid": "cci-runner-job",
+ "title": "CircleCI job detail",
+ "tags": [
+  "circleci",
+  "runner"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "time": {
+  "from": "now-3h",
+  "to": "now"
+ },
+ "links": [
+  {
+   "title": "Runner fleet",
+   "type": "link",
+   "url": "/d/cci-runner-fleet/circleci-runner-fleet",
+   "icon": "dashboard"
+  }
+ ],
+ "templating": {
+  "list": [
+   {
+    "name": "job_id",
+    "label": "Job ID",
+    "type": "textbox",
+    "query": "",
+    "current": {
+     "text": "",
+     "value": ""
+    }
+   },
+   {
+    "name": "trace_id",
+    "label": "Trace ID",
+    "type": "textbox",
+    "query": "",
+    "current": {
+     "text": "",
+     "value": ""
+    }
+   },
+   {
+    "name": "cgroup",
+    "label": "Runner cgroup",
+    "type": "textbox",
+    "query": ".+",
+    "current": {
+     "text": ".+",
+     "value": ".+"
+    }
+   },
+   {
+    "name": "instance",
+    "label": "EC2 instance",
+    "type": "textbox",
+    "query": ".+",
+    "current": {
+     "text": ".+",
+     "value": ".+"
+    }
+   }
+  ]
+ },
+ "annotations": {
+  "list": [
+   {
+    "name": "Job start/end",
+    "datasource": {
+     "type": "loki",
+     "uid": "grafanacloud-logs"
+    },
+    "enable": true,
+    "iconColor": "green",
+    "expr": "{service_name=\"circleci-job-wrapper\"} | json | job_id=\"$job_id\"",
+    "titleFormat": "{{event}}",
+    "textFormat": "{{job_name}} on {{runner_name}}"
+   }
+  ]
+ },
+ "panels": [
+  {
+   "type": "row",
+   "title": "Job $job_id",
+   "collapsed": false,
+   "panels": [],
+   "id": 2,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 0
+   }
+  },
+  {
+   "type": "table",
+   "title": "Where and when it ran (wrapper)",
+   "datasource": {
+    "type": "loki",
+    "uid": "grafanacloud-logs"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "loki",
+      "uid": "grafanacloud-logs"
+     },
+     "refId": "A",
+     "expr": "{service_name=\"circleci-job-wrapper\"} | json | job_id=\"$job_id\" | event=\"job_end\""
+    }
+   ],
+   "transformations": [
+    {
+     "id": "extractFields",
+     "options": {
+      "source": "Line",
+      "format": "json",
+      "replace": true
+     }
+    },
+    {
+     "id": "filterFieldsByName",
+     "options": {
+      "include": {
+       "names": [
+        "job_name",
+        "runner_name",
+        "instance_id",
+        "instance_type",
+        "availability_zone",
+        "resource_class",
+        "duration_ms",
+        "cpu_user_ms",
+        "cpu_sys_ms",
+        "branch",
+        "workflow_id",
+        "pipeline_id",
+        "build_url",
+        "cgroup"
+       ]
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byRegexp",
+       "options": "duration_ms|cpu_user_ms|cpu_sys_ms"
+      },
+      "properties": [
+       {
+        "id": "unit",
+        "value": "ms"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "job_name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open job in CircleCI",
+          "url": "${__data.fields.build_url}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "workflow_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open workflow in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__value.raw}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "pipeline_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open pipeline in CircleCI",
+          "url": "https://app.circleci.com/pipeline/${__value.raw}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byRegexp",
+       "options": "build_url"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "id": 3,
+   "gridPos": {
+    "h": 4,
+    "w": 24,
+    "x": 0,
+    "y": 1
+   }
+  },
+  {
+   "type": "table",
+   "title": "Job result (CircleCI span)",
+   "datasource": {
+    "type": "tempo",
+    "uid": "grafanacloud-traces"
+   },
+   "description": "Click trace_id to load the span timeline below if it is empty.",
+   "targets": [
+    {
+     "datasource": {
+      "type": "tempo",
+      "uid": "grafanacloud-traces"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"Job:.*\" && span.com.circleci.job.id = \"$job_id\" } | select(span.com.circleci.job.name, span.com.circleci.job.status, span.com.circleci.resource.class, span.com.circleci.workflow.name, span.com.circleci.workflow.id)",
+     "refId": "A",
+     "limit": 50,
+     "spss": 100,
+     "tableType": "spans",
+     "streaming": false
+    }
+   ],
+   "transformations": [
+    {
+     "id": "merge",
+     "options": {}
+    },
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "traceService": true,
+       "traceName": true,
+       "spanID": true
+      },
+      "renameByName": {
+       "traceIdHidden": "trace_id",
+       "com.circleci.job.id": "job_id",
+       "com.circleci.job.name": "job_name",
+       "com.circleci.job.status": "job result",
+       "com.circleci.workflow.id": "workflow_id",
+       "com.circleci.workflow.name": "workflow",
+       "com.circleci.resource.class": "resource_class",
+       "com.circleci.task.result": "step result",
+       "name": "span"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "job result"
+      },
+      "properties": [
+       {
+        "id": "mappings",
+        "value": [
+         {
+          "type": "value",
+          "options": {
+           "success": {
+            "color": "green"
+           },
+           "failed": {
+            "color": "red"
+           },
+           "canceled": {
+            "color": "orange"
+           }
+          }
+         }
+        ]
+       },
+       {
+        "id": "custom.cellOptions",
+        "value": {
+         "type": "color-text"
+        }
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "trace_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Show this trace below",
+          "url": "/d/cci-runner-job/circleci-job-detail?var-job_id=$job_id&var-trace_id=${__value.raw}&var-cgroup=$cgroup&var-instance=$instance&${__url_time_range}",
+          "targetBlank": false
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "job_name"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open job in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "workflow_id"
+      },
+      "properties": [
+       {
+        "id": "links",
+        "value": [
+         {
+          "title": "Open workflow in CircleCI",
+          "url": "https://app.circleci.com/workflow/${__value.raw}",
+          "targetBlank": true
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byRegexp",
+       "options": "Start time|Name"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "id": 4,
+   "gridPos": {
+    "h": 5,
+    "w": 24,
+    "x": 0,
+    "y": 5
+   }
+  },
+  {
+   "type": "row",
+   "title": "Spans: pipeline > workflow > job > steps (CircleCI OpenTelemetry)",
+   "collapsed": false,
+   "panels": [],
+   "id": 5,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 10
+   }
+  },
+  {
+   "type": "traces",
+   "title": "Trace $trace_id",
+   "datasource": {
+    "type": "tempo",
+    "uid": "grafanacloud-traces"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "tempo",
+      "uid": "grafanacloud-traces"
+     },
+     "queryType": "traceql",
+     "query": "$trace_id",
+     "refId": "A"
+    }
+   ],
+   "id": 6,
+   "gridPos": {
+    "h": 14,
+    "w": 24,
+    "x": 0,
+    "y": 11
+   }
+  },
+  {
+   "type": "table",
+   "title": "Steps, slowest first",
+   "datasource": {
+    "type": "tempo",
+    "uid": "grafanacloud-traces"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "tempo",
+      "uid": "grafanacloud-traces"
+     },
+     "queryType": "traceql",
+     "query": "{ name =~ \"Step:.*\" && span.com.circleci.job.id = \"$job_id\" } | select(span.com.circleci.task.result)",
+     "refId": "A",
+     "limit": 50,
+     "spss": 100,
+     "tableType": "spans",
+     "streaming": false
+    }
+   ],
+   "transformations": [
+    {
+     "id": "merge",
+     "options": {}
+    },
+    {
+     "id": "organize",
+     "options": {
+      "excludeByName": {
+       "traceService": true,
+       "traceName": true,
+       "spanID": true
+      },
+      "renameByName": {
+       "traceIdHidden": "trace_id",
+       "com.circleci.job.id": "job_id",
+       "com.circleci.job.name": "job_name",
+       "com.circleci.job.status": "job result",
+       "com.circleci.workflow.id": "workflow_id",
+       "com.circleci.workflow.name": "workflow",
+       "com.circleci.resource.class": "resource_class",
+       "com.circleci.task.result": "step result",
+       "name": "span"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "duration"
+      },
+      "properties": [
+       {
+        "id": "unit",
+        "value": "ns"
+       }
+      ]
+     },
+     {
+      "matcher": {
+       "id": "byRegexp",
+       "options": "trace_id|job_id"
+      },
+      "properties": [
+       {
+        "id": "custom.hidden",
+        "value": true
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "sortBy": [
+     {
+      "displayName": "duration",
+      "desc": true
+     }
+    ]
+   },
+   "id": 7,
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 25
+   }
+  },
+  {
+   "type": "table",
+   "title": "Step progress as it happened (task agent log on the host)",
+   "datasource": {
+    "type": "loki",
+    "uid": "grafanacloud-logs"
+   },
+   "description": "Experimental: the task agent's own log lines, collected from the runner journal. Seconds behind real time.",
+   "targets": [
+    {
+     "datasource": {
+      "type": "loki",
+      "uid": "grafanacloud-logs"
+     },
+     "refId": "A",
+     "expr": "{service_name=\"circleci-job-wrapper\"} | log_type=\"task_agent\" | json | job_id=\"$job_id\""
+    }
+   ],
+   "transformations": [
+    {
+     "id": "extractFields",
+     "options": {
+      "source": "Line",
+      "format": "json",
+      "replace": true
+     }
+    },
+    {
+     "id": "filterFieldsByName",
+     "options": {
+      "include": {
+       "names": [
+        "time",
+        "msg",
+        "step",
+        "step-id",
+        "step_type",
+        "exit_code",
+        "duration",
+        "result"
+       ]
+      }
+     }
+    },
+    {
+     "id": "organize",
+     "options": {
+      "renameByName": {
+       "duration": "duration_ms"
+      }
+     }
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {},
+    "overrides": [
+     {
+      "matcher": {
+       "id": "byName",
+       "options": "duration_ms"
+      },
+      "properties": [
+       {
+        "id": "unit",
+        "value": "ms"
+       }
+      ]
+     }
+    ]
+   },
+   "options": {
+    "sortBy": [
+     {
+      "displayName": "time",
+      "desc": false
+     }
+    ]
+   },
+   "id": 8,
+   "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 25
+   }
+  },
+  {
+   "type": "row",
+   "title": "Resources used during this job",
+   "collapsed": false,
+   "panels": [],
+   "id": 9,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 33
+   }
+  },
+  {
+   "type": "stat",
+   "title": "CPU time used by the job (wrapper, from rusage)",
+   "datasource": {
+    "type": "loki",
+    "uid": "grafanacloud-logs"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "loki",
+      "uid": "grafanacloud-logs"
+     },
+     "refId": "A",
+     "expr": "{service_name=\"circleci-job-wrapper\"} | log_type=\"wrapper\" | json | job_id=\"$job_id\" | event=\"job_end\""
+    }
+   ],
+   "transformations": [
+    {
+     "id": "extractFields",
+     "options": {
+      "source": "Line",
+      "format": "json",
+      "replace": true
+     }
+    },
+    {
+     "id": "filterFieldsByName",
+     "options": {
+      "include": {
+       "names": [
+        "duration_ms",
+        "cpu_user_ms",
+        "cpu_sys_ms"
+       ]
+      }
+     }
+    },
+    {
+     "id": "convertFieldType",
+     "options": {
+      "conversions": [
+       {
+        "targetField": "duration_ms",
+        "destinationType": "number"
+       },
+       {
+        "targetField": "cpu_user_ms",
+        "destinationType": "number"
+       },
+       {
+        "targetField": "cpu_sys_ms",
+        "destinationType": "number"
+       }
+      ]
+     }
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "/.*/"
+    },
+    "colorMode": "none",
+    "graphMode": "none",
+    "textMode": "value_and_name"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "ms"
+    },
+    "overrides": []
+   },
+   "id": 10,
+   "gridPos": {
+    "h": 7,
+    "w": 8,
+    "x": 16,
+    "y": 34
+   }
+  },
+  {
+   "type": "timeseries",
+   "title": "Job CPU (cores), runner service cgroup",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "grafanacloud-prom"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "grafanacloud-prom"
+     },
+     "refId": "A",
+     "expr": "sum by (cgroup) (rate(container_cpu_usage_seconds_total{cgroup=~\"$cgroup\", cgroup=~\"/system.slice/circleci-runner.*\"}[$__rate_interval]))",
+     "legendFormat": "{{cgroup}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "min": 0,
+     "custom": {
+      "fillOpacity": 15
+     }
+    },
+    "overrides": []
+   },
+   "id": 11,
+   "gridPos": {
+    "h": 7,
+    "w": 8,
+    "x": 0,
+    "y": 34
+   }
+  },
+  {
+   "type": "timeseries",
+   "title": "Job memory (working set), runner service cgroup",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "grafanacloud-prom"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "grafanacloud-prom"
+     },
+     "refId": "A",
+     "expr": "sum by (cgroup) (container_memory_working_set_bytes{cgroup=~\"$cgroup\", cgroup=~\"/system.slice/circleci-runner.*\"})",
+     "legendFormat": "{{cgroup}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "bytes",
+     "min": 0,
+     "custom": {
+      "fillOpacity": 15
+     }
+    },
+    "overrides": []
+   },
+   "id": 12,
+   "gridPos": {
+    "h": 7,
+    "w": 8,
+    "x": 8,
+    "y": 34
+   }
+  },
+  {
+   "type": "timeseries",
+   "title": "Host CPU busy % (all jobs on the host)",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "grafanacloud-prom"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "grafanacloud-prom"
+     },
+     "refId": "A",
+     "expr": "100 * (1 - avg by (instance_id) (rate(node_cpu_seconds_total{mode=\"idle\",instance_id=~\"$instance\", instance_id!=\"\"}[$__rate_interval])))",
+     "legendFormat": "{{instance_id}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "min": 0,
+     "custom": {
+      "fillOpacity": 15
+     }
+    },
+    "overrides": []
+   },
+   "id": 13,
+   "gridPos": {
+    "h": 7,
+    "w": 8,
+    "x": 0,
+    "y": 41
+   }
+  },
+  {
+   "type": "timeseries",
+   "title": "Host IO wait %",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "grafanacloud-prom"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "grafanacloud-prom"
+     },
+     "refId": "A",
+     "expr": "100 * avg by (instance_id) (rate(node_cpu_seconds_total{mode=\"iowait\",instance_id=~\"$instance\", instance_id!=\"\"}[$__rate_interval]))",
+     "legendFormat": "{{instance_id}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "min": 0,
+     "custom": {
+      "fillOpacity": 15
+     }
+    },
+    "overrides": []
+   },
+   "id": 14,
+   "gridPos": {
+    "h": 7,
+    "w": 8,
+    "x": 8,
+    "y": 41
+   }
+  },
+  {
+   "type": "timeseries",
+   "title": "Host memory used %",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "grafanacloud-prom"
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "grafanacloud-prom"
+     },
+     "refId": "A",
+     "expr": "100 * (1 - node_memory_MemAvailable_bytes{instance_id=~\"$instance\", instance_id!=\"\"} / node_memory_MemTotal_bytes{instance_id=~\"$instance\", instance_id!=\"\"})",
+     "legendFormat": "{{instance_id}}"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "min": 0,
+     "custom": {
+      "fillOpacity": 15
+     }
+    },
+    "overrides": []
+   },
+   "id": 15,
+   "gridPos": {
+    "h": 7,
+    "w": 8,
+    "x": 16,
+    "y": 41
+   }
+  }
+ ]
+}

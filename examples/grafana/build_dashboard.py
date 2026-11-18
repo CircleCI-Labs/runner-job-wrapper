@@ -23,7 +23,8 @@ def link(title, url, blank=True):
 def links_on(field, *ls):
     return {"matcher": {"id": "byName", "options": field}, "properties": [{"id": "links", "value": list(ls)}]}
 
-DRILL = "/d/cci-runner-fleet/circleci-runner-fleet?var-job_id=${__value.raw}&from=now-3h&to=now"
+JOBDASH = "/d/cci-runner-job/circleci-job-detail"
+DRILL = JOBDASH + "?var-job_id=${__value.raw}&from=now-3h&to=now"
 SEL = '{service_name="circleci-job-wrapper"}'
 TA = SEL + ' | log_type="task_agent"'
 INST = 'instance_id=~"$instance", instance_id!=""'
@@ -61,13 +62,90 @@ def traceql(q, ref="A", limit=200, table="spans"):
             "limit": limit, "spss": 50, "tableType": table, "streaming": False}
 
 TEMPO_FLAT = [{"id": "merge", "options": {}},
-              {"id": "organize", "options": {"excludeByName": {"traceIdHidden": True, "traceService": True, "traceName": True, "spanID": True},
-                                             "renameByName": {"com.circleci.job.id": "job_id", "com.circleci.job.name": "job_name", "com.circleci.job.status": "job result",
+              {"id": "organize", "options": {"excludeByName": {"traceService": True, "traceName": True, "spanID": True},
+                                             "renameByName": {"traceIdHidden": "trace_id", "com.circleci.job.id": "job_id", "com.circleci.job.name": "job_name", "com.circleci.job.status": "job result",
                                                               "com.circleci.resource.class": "resource_class", "com.circleci.workflow.id": "workflow_id", "com.circleci.workflow.name": "workflow", "com.circleci.task.result": "step result", "name": "span"}}}]
 
-JOB_LINK = [{"title": "Drill into this job",
-             "url": "/d/cci-runner-fleet/circleci-runner-fleet?var-job_id=${__data.fields.job_id}&var-instance=${__data.fields.instance_id}&from=${__data.fields.start_ms}&to=${__data.fields.end_ms}"},
+def tmetrics(q, ref="A", instant=True, legend=""):
+    t = {"datasource": TEMPO, "queryType": "traceql", "query": q, "refId": ref,
+         "metricsQueryType": "instant" if instant else "range", "step": "5m"}
+    if legend:
+        t["legendFormat"] = legend
+    return t
+
+BR = 'span.vcs.ref.head.name =~ "$branch"'
+
+JOB_LINK = [{"title": "Drill into this job (spans, steps, resources)",
+             "url": "/d/cci-runner-job/circleci-job-detail?var-job_id=${__data.fields.job_id}&var-trace_id=${__data.fields.trace_id}&var-cgroup=${__data.fields.cgroup}&var-instance=${__data.fields.instance_id}&from=${__data.fields.start_ms}&to=${__data.fields.end_ms}"},
             {"title": "Open job in CircleCI", "url": "${__data.fields.build_url}", "targetBlank": True}]
+
+# ---------------------------------------------------------------- pipelines
+row("Pipeline performance (CircleCI OpenTelemetry spans)")
+WF = '{ name =~ "Workflow:.*" && %s }' % BR
+JOB = '{ name =~ "Job:.*" && %s }' % BR
+add({"type": "stat", "title": "Workflows", "datasource": TEMPO,
+     "targets": [tmetrics(WF + " | count_over_time()")],
+     "options": {"reduceOptions": {"calcs": ["sum"]}, "colorMode": "none", "graphMode": "none"},
+     "fieldConfig": {"defaults": {"decimals": 0}, "overrides": []}}, 4, 4, 0)
+add({"type": "stat", "title": "Workflow success rate", "datasource": TEMPO,
+     "description": "success / (success + failed) over the time range, from CircleCI workflow spans (up to 500). Canceled workflows are excluded.",
+     "targets": [{"datasource": TEMPO, "queryType": "traceql", "refId": "A", "limit": 500, "spss": 5, "tableType": "spans", "streaming": False,
+                  "query": '{ name =~ "Workflow:.*" && %s && span.com.circleci.workflow.status =~ "success|failed" } | select(span.com.circleci.workflow.status)' % BR}],
+     "transformations": [{"id": "merge", "options": {}},
+                         {"id": "groupBy", "options": {"fields": {"com.circleci.workflow.status": {"aggregations": [], "operation": "groupby"},
+                                                                  "spanID": {"aggregations": ["count"], "operation": "aggregate"}}}},
+                         {"id": "rowsToFields", "options": {"mappings": [{"fieldName": "com.circleci.workflow.status", "handlerKey": "field.name"},
+                                                                         {"fieldName": "spanID (count)", "handlerKey": "field.value"}]}},
+                         {"id": "calculateField", "options": {"mode": "reduceRow", "reduce": {"reducer": "sum"}, "alias": "total"}},
+                         {"id": "calculateField", "options": {"mode": "binary", "binary": {"left": "success", "operator": "/", "right": "total"}, "alias": "success rate", "replaceFields": True}}],
+     "options": {"reduceOptions": {"calcs": ["lastNotNull"]}, "colorMode": "value", "graphMode": "none"},
+     "fieldConfig": {"defaults": {"unit": "percentunit", "decimals": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": None}, {"color": "orange", "value": 0.8}, {"color": "green", "value": 0.95}]}}, "overrides": []}}, 4, 4, 4)
+add({"type": "stat", "title": "Median workflow wall time", "datasource": TEMPO,
+     "targets": [tmetrics(WF + " | quantile_over_time(duration, .5)")],
+     "options": {"reduceOptions": {"calcs": ["mean"]}, "colorMode": "none", "graphMode": "none"},
+     "fieldConfig": {"defaults": {"unit": "s", "decimals": 1}, "overrides": []}}, 4, 4, 8)
+add({"type": "stat", "title": "P95 workflow wall time", "datasource": TEMPO,
+     "targets": [tmetrics(WF + " | quantile_over_time(duration, .95)")],
+     "options": {"reduceOptions": {"calcs": ["mean"]}, "colorMode": "none", "graphMode": "none"},
+     "fieldConfig": {"defaults": {"unit": "s", "decimals": 1}, "overrides": []}}, 4, 4, 12)
+add({"type": "timeseries", "title": "Workflows by result", "datasource": TEMPO,
+     "targets": [tmetrics(WF + " | count_over_time() by (span.com.circleci.workflow.status)", instant=False, legend="{{span.com.circleci.workflow.status}}")],
+     "fieldConfig": {"defaults": {"decimals": 0, "min": 0, "custom": {"drawStyle": "bars", "fillOpacity": 70, "stacking": {"mode": "normal"}}}, "overrides": [
+         {"matcher": {"id": "byRegexp", "options": ".*success.*"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]},
+         {"matcher": {"id": "byRegexp", "options": ".*failed.*"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]},
+         {"matcher": {"id": "byRegexp", "options": ".*cancel.*"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "gray"}}]}]}}, 8, 4, 16)
+nl(4)
+add({"type": "table", "title": "Slowest jobs (median and P95 run time)", "datasource": TEMPO,
+     "description": "Per job name, from CircleCI job spans in the time range (up to 500 traces).",
+     "targets": [{"datasource": TEMPO, "queryType": "traceql", "refId": "A", "limit": 500, "spss": 100, "tableType": "spans", "streaming": False,
+                  "query": JOB + " | select(span.com.circleci.job.name, span.com.circleci.job.status)"}],
+     "transformations": [{"id": "merge", "options": {}},
+                         {"id": "groupBy", "options": {"fields": {
+                             "com.circleci.job.name": {"aggregations": [], "operation": "groupby"},
+                             "duration": {"aggregations": ["count", "p50", "p95", "max"], "operation": "aggregate"}}}},
+                         {"id": "organize", "options": {"renameByName": {"com.circleci.job.name": "job", "duration (count)": "runs", "duration (p50)": "median",
+                                                                         "duration (p95)": "p95", "duration (max)": "max"}}},
+                         {"id": "sortBy", "options": {"sort": [{"field": "median", "desc": True}]}}],
+     "fieldConfig": {"defaults": {}, "overrides": [
+         {"matcher": {"id": "byRegexp", "options": "median|p95|max"}, "properties": [{"id": "unit", "value": "ns"}]}]}}, 12, 8, 0)
+add({"type": "table", "title": "Recent workflows", "datasource": TEMPO,
+     "targets": [{"datasource": TEMPO, "queryType": "traceql", "refId": "A", "limit": 50, "spss": 1, "tableType": "spans", "streaming": False,
+                  "query": WF + " | select(span.com.circleci.workflow.id, span.com.circleci.workflow.status, span.vcs.ref.head.name, span.com.circleci.pipeline.id, span.com.circleci.pipeline.number)"}],
+     "transformations": [{"id": "merge", "options": {}},
+                         {"id": "organize", "options": {"excludeByName": {"traceService": True, "traceName": True, "spanID": True},
+                                                        "renameByName": {"traceIdHidden": "trace_id", "com.circleci.workflow.id": "workflow_id", "com.circleci.workflow.status": "result",
+                                                                         "vcs.ref.head.name": "branch", "com.circleci.pipeline.id": "pipeline_id", "com.circleci.pipeline.number": "pipeline #", "name": "workflow"}}}],
+     "fieldConfig": {"defaults": {}, "overrides": [
+         {"matcher": {"id": "byName", "options": "result"}, "properties": [
+             {"id": "mappings", "value": [{"type": "value", "options": {"success": {"color": "green"}, "failed": {"color": "red"}, "canceled": {"color": "gray"}}}]},
+             {"id": "custom.cellOptions", "value": {"type": "color-text"}}]},
+         {"matcher": {"id": "byName", "options": "duration"}, "properties": [{"id": "unit", "value": "ns"}]},
+         links_on("workflow_id", link("Open workflow in CircleCI", APP + "/workflow/${__value.raw}")),
+         links_on("workflow", link("Open workflow in CircleCI", APP + "/workflow/${__data.fields.workflow_id}")),
+         links_on("pipeline_id", link("Open pipeline in CircleCI", APP + "/pipeline/${__value.raw}")),
+         links_on("trace_id", link("Open trace in job detail", JOBDASH + "?var-trace_id=${__value.raw}&from=now-3h&to=now", False))]},
+     "options": {"sortBy": [{"displayName": "Start time", "desc": True}]}}, 12, 8, 12)
+nl(8)
 
 # ---------------------------------------------------------------- live fleet
 row("Fleet right now (wrapper busy gauge)")
@@ -133,8 +211,10 @@ add({"type": "table", "title": "Job results from CircleCI spans", "datasource": 
      "fieldConfig": {"defaults": {}, "overrides": [{"matcher": {"id": "byName", "options": "job result"}, "properties": [
          {"id": "mappings", "value": [{"type": "value", "options": {"success": {"color": "green"}, "failed": {"color": "red"}, "canceled": {"color": "orange"}}}]},
          {"id": "custom.cellOptions", "value": {"type": "color-text"}}]},
-         links_on("job_id", link("Open job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__value.raw}"), link("Drill into this job", DRILL, False)),
-         links_on("workflow_id", link("Open workflow in CircleCI", APP + "/workflow/${__value.raw}"))]}}, 8, 8, 16)
+         links_on("job_id", link("Open job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__value.raw}"),
+                  link("Drill into this job (spans, steps, resources)", JOBDASH + "?var-job_id=${__value.raw}&var-trace_id=${__data.fields.trace_id}&from=now-3h&to=now", False)),
+         links_on("workflow_id", link("Open workflow in CircleCI", APP + "/workflow/${__value.raw}")),
+         {"matcher": {"id": "byName", "options": "trace_id"}, "properties": [{"id": "custom.hidden", "value": True}]}]}}, 8, 8, 16)
 add({"type": "table", "title": "Job results per host (task agent log on the host)", "datasource": LOKI,
      "description": "From the task agent's own 'Reporting task end.' log line, collected by Alloy from the runner journal and tagged with the instance id. Many failures on one host at the same time points at a wedged worker.",
      "targets": [loki('sum by (instance_id, result) (count_over_time(%s | event="task_end" | json | result!="" | %s [$__range]))' % (TA, INST), qtype="instant")],
@@ -170,8 +250,9 @@ add({"type": "table", "title": "Recent jobs (wrapper job_end events): which host
          {"matcher": {"id": "byName", "options": "duration_ms"}, "properties": [{"id": "unit", "value": "ms"}]},
          {"matcher": {"id": "byName", "options": "job_id"}, "properties": [{"id": "links", "value": JOB_LINK}]},
          links_on("job_name", link("Open job in CircleCI", "${__data.fields.build_url}")),
-         links_on("workflow_id", link("Open workflow in CircleCI", "${__data.fields.workflow_url}")),
-         links_on("pipeline_id", link("Open pipeline in CircleCI", "${__data.fields.pipeline_url}")),
+         links_on("workflow_id", link("Open workflow in CircleCI", APP + "/workflow/${__value.raw}")),
+         links_on("pipeline_id", link("Open pipeline in CircleCI", APP + "/pipeline/${__value.raw}")),
+         {"matcher": {"id": "byRegexp", "options": "trace_id|cgroup|cpu_user_ms|cpu_sys_ms"}, "properties": [{"id": "custom.hidden", "value": True}]},
          {"matcher": {"id": "byName", "options": "workflow_url"}, "properties": [{"id": "custom.hidden", "value": True}]},
          {"matcher": {"id": "byName", "options": "pipeline_url"}, "properties": [{"id": "custom.hidden", "value": True}]},
          {"matcher": {"id": "byName", "options": "start_ms"}, "properties": [{"id": "custom.hidden", "value": True}]},
@@ -180,46 +261,18 @@ add({"type": "table", "title": "Recent jobs (wrapper job_end events): which host
      "options": {"sortBy": [{"displayName": "ts", "desc": True}]}}, 24, 9, 0)
 nl(9)
 
-# ---------------------------------------------------------------- one job
-row("Drill into one job ($job_id): steps from CircleCI spans, host from the wrapper")
-add({"type": "table", "title": "Where and when it ran (wrapper)", "datasource": LOKI,
-     "targets": [loki('%s | json | job_id="$job_id"' % SEL)],
-     "transformations": [{"id": "extractFields", "options": {"source": "Line", "format": "json", "replace": True}},
-                         {"id": "filterFieldsByName", "options": {"include": {"names": ["ts", "event", "job_name", "runner_name", "hostname", "instance_id", "instance_type", "availability_zone", "resource_class", "duration_ms", "agent_status", "workflow_id", "build_url", "workflow_url", "pipeline_url"]}}}],
-     "fieldConfig": {"defaults": {}, "overrides": [{"matcher": {"id": "byName", "options": "duration_ms"}, "properties": [{"id": "unit", "value": "ms"}]},
-         links_on("job_name", link("Open job in CircleCI", "${__data.fields.build_url}")),
-         links_on("workflow_id", link("Open workflow in CircleCI", "${__data.fields.workflow_url}"), link("Open pipeline in CircleCI", "${__data.fields.pipeline_url}")),
-         {"matcher": {"id": "byRegexp", "options": "build_url|workflow_url|pipeline_url"}, "properties": [{"id": "custom.hidden", "value": True}]}]}}, 12, 6, 0)
-add({"type": "table", "title": "Job result (CircleCI span)", "datasource": TEMPO,
-     "targets": [traceql('{ name =~ "Job:.*" && span.com.circleci.job.id = "$job_id" } | select(span.com.circleci.job.name, span.com.circleci.job.status, span.com.circleci.resource.class, span.com.circleci.workflow.name, span.com.circleci.workflow.id)')],
-     "transformations": TEMPO_FLAT,
-     "fieldConfig": {"defaults": {}, "overrides": [
-         links_on("job_id", link("Open job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__value.raw}")),
-         links_on("job_name", link("Open job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__data.fields.job_id}")),
-         links_on("workflow_id", link("Open workflow in CircleCI", APP + "/workflow/${__value.raw}"))]}}, 12, 6, 12)
-nl(6)
-add({"type": "table", "title": "Steps, slowest first (CircleCI step spans)", "datasource": TEMPO,
-     "targets": [traceql('{ name =~ "Step:.*" && span.com.circleci.job.id = "$job_id" } | select(span.com.circleci.task.result, span.com.circleci.workflow.id)')],
-     "transformations": TEMPO_FLAT,
-     "fieldConfig": {"defaults": {}, "overrides": [{"matcher": {"id": "byName", "options": "duration"}, "properties": [{"id": "unit", "value": "ns"}]},
-         links_on("job_id", link("Open job in CircleCI", APP + "/workflow/${__data.fields.workflow_id}/job/${__value.raw}"))]},
-     "options": {"sortBy": [{"displayName": "duration", "desc": True}]}}, 12, 8, 0)
-add({"type": "timeseries", "title": "Host CPU and IO wait during this job", "datasource": PROM,
-     "targets": [prom('100 * (1 - avg by (instance_id) (rate(node_cpu_seconds_total{mode="idle",%s}[$__rate_interval])))' % INST, "CPU busy {{instance_id}}", ref="A"),
-                 prom('100 * avg by (instance_id) (rate(node_cpu_seconds_total{mode="iowait",%s}[$__rate_interval]))' % INST, "IO wait {{instance_id}}", ref="B")],
-     "fieldConfig": {"defaults": {"unit": "percent", "min": 0}, "overrides": []}}, 12, 8, 12)
-nl(8)
-
 dash = {
     "uid": "cci-runner-fleet", "title": "CircleCI runner fleet", "tags": ["circleci", "runner"],
     "timezone": "browser", "schemaVersion": 39, "refresh": "30s",
     "time": {"from": "now-3h", "to": "now"},
+    "links": [{"title": "Job detail", "type": "link", "url": "/d/cci-runner-job/circleci-job-detail", "icon": "dashboard"}],
     "templating": {"list": [
+        {"name": "branch", "label": "Branch (regex)", "type": "textbox", "query": ".*", "current": {"text": ".*", "value": ".*"}},
         {"name": "instance", "label": "EC2 instance", "type": "query", "datasource": PROM,
          "query": {"query": "label_values(node_load1, instance_id)", "refId": "v"},
          "definition": "label_values(node_load1, instance_id)", "multi": True, "includeAll": True,
          "allValue": ".*", "current": {"text": "All", "value": "$__all"}, "refresh": 2},
-        {"name": "job_id", "label": "Job ID", "type": "textbox", "query": "", "current": {"text": "", "value": ""}}]},
+        ]},
     "annotations": {"list": [
         {"name": "Job starts", "datasource": LOKI, "enable": True, "iconColor": "green",
          "expr": '%s | event="job_start" | json | %s' % (SEL, INST), "titleFormat": "job start",
