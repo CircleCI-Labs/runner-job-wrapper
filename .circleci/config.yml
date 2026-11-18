@@ -8,6 +8,10 @@ parameters:
   lab-sleep-seconds:
     type: integer
     default: 300
+  load:
+    type: boolean
+    default: false
+    description: Run the realistic load workflow on the lab runners.
 
 executors:
   lab-runner:
@@ -58,10 +62,42 @@ jobs:
     steps:
       - run: sleep << parameters.seconds >>
 
+  load-step:
+    executor: lab-runner
+    parameters:
+      min:
+        type: integer
+      max:
+        type: integer
+      fail-percent:
+        type: integer
+        default: 0
+      kind:
+        type: enum
+        enum: [cpu, io, mem, sleep]
+    steps:
+      - run:
+          name: Work (<< parameters.kind >>, << parameters.min >>-<< parameters.max >>s)
+          command: |
+            secs=$(( << parameters.min >> + RANDOM % (<< parameters.max >> - << parameters.min >> + 1) ))
+            case << parameters.kind >> in
+              cpu) timeout "$secs" sh -c 'while :; do :; done' || true ;;
+              io) end=$((SECONDS + secs)); while [ $SECONDS -lt $end ]; do dd if=/dev/zero of=./blob bs=1M count=200 oflag=direct status=none; rm -f ./blob; done ;;
+              mem) python3 -c "import time; b = bytearray(200 * 1024 * 1024); time.sleep($secs)" ;;
+              sleep) sleep "$secs" ;;
+            esac
+      - run:
+          name: Report results
+          command: |
+            if [ $(( RANDOM % 100 )) -lt << parameters.fail-percent >> ]; then echo "simulated test failure"; exit 1; fi
+            echo ok
+
 workflows:
   ci:
     when:
-      not: << pipeline.parameters.lab >>
+      and:
+        - not: << pipeline.parameters.lab >>
+        - not: << pipeline.parameters.load >>
     jobs:
       - check
   lab:
@@ -72,3 +108,38 @@ workflows:
       - lab-cpu
       - lab-sleep:
           seconds: << pipeline.parameters.lab-sleep-seconds >>
+  load:
+    when: << pipeline.parameters.load >>
+    jobs:
+      - load-step:
+          name: build
+          kind: cpu
+          min: 20
+          max: 60
+      - load-step:
+          name: unit-tests
+          kind: cpu
+          min: 15
+          max: 45
+          fail-percent: 15
+          requires: [build]
+      - load-step:
+          name: lint
+          kind: sleep
+          min: 5
+          max: 15
+          fail-percent: 5
+          requires: [build]
+      - load-step:
+          name: integration-tests
+          kind: io
+          min: 30
+          max: 90
+          fail-percent: 10
+          requires: [unit-tests, lint]
+      - load-step:
+          name: package
+          kind: mem
+          min: 10
+          max: 20
+          requires: [integration-tests]
