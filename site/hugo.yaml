@@ -73,27 +73,27 @@ params:
       - icon: server
         title: Host identity on every job
         text: EC2 instance, runner agent and resource class, next to the job, workflow and pipeline IDs and links.
-        link: docs/event-schema/
+        link: docs/reference/event-schema/
         linkText: Event schema
       - icon: layers
         title: Joins CircleCI spans with host data
         text: The job ID matches com.circleci.job.id on CircleCI spans, and the instance ID matches your host metrics.
-        link: docs/join-with-opentelemetry/
+        link: docs/send-the-data/join-with-opentelemetry/
         linkText: Join the data
       - icon: shield-check
         title: Never changes the job
         text: The task agent runs as a normal child. Stdin, signals and the exit status pass through, and a logging failure never fails a job.
-        link: docs/how-it-works/
+        link: docs/reference/how-it-works/
         linkText: How it works
       - icon: box
         title: No dependencies
         text: One bash script, no daemon and no jq. About 6 ms per job.
-        link: docs/install/
+        link: docs/get-started/install/
         linkText: Install
       - icon: refresh-cw
         title: Any backend
         text: JSONL on disk. Alloy example tested with Grafana Cloud, Datadog Agent documented, plus an example Grafana dashboard.
-        link: docs/ship-with-alloy/
+        link: docs/send-the-data/ship-with-alloy/
         linkText: Ship the data
 
   banner:
