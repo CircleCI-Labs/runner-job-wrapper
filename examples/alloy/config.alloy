@@ -1,0 +1,98 @@
+// Grafana Alloy: ship circleci-job-wrapper events + host metrics over OTLP.
+// Works with Grafana Cloud's OTLP gateway or any OTLP/HTTP endpoint.
+// Env (e.g. /etc/default/alloy): OTLP_ENDPOINT, OTLP_USERNAME, OTLP_PASSWORD
+
+// ---- 1. Job events written by circleci-job-wrapper (JSON lines) ----
+local.file_match "cci_jobs" {
+  path_targets = [{"__path__" = "/var/log/circleci-job-wrapper/jobs.jsonl", "source" = "circleci-job-wrapper"}]
+}
+
+loki.source.file "cci_jobs" {
+  targets    = local.file_match.cci_jobs.targets
+  forward_to = [loki.process.cci_jobs.receiver]
+}
+
+loki.process "cci_jobs" {
+  // Promote a few low-cardinality fields to labels; job/workflow IDs stay in
+  // the JSON body and are queried with `| json`.
+  stage.json {
+    expressions = { event = "event", resource_class = "resource_class", runner = "runner_name", instance_id = "instance_id" }
+  }
+  stage.labels {
+    values = { event = "", resource_class = "", runner = "", instance_id = "" }
+  }
+  stage.static_labels {
+    values = { service_name = "circleci-job-wrapper" }
+  }
+  forward_to = [otelcol.receiver.loki.default.receiver]
+}
+
+otelcol.receiver.loki "default" {
+  output { logs = [otelcol.processor.transform.logs.input] }
+}
+
+// Name the log stream; event, job_id, runner etc. arrive as attributes
+// (structured metadata in Loki).
+otelcol.processor.transform "logs" {
+  error_mode = "ignore"
+  log_statements {
+    context    = "resource"
+    statements = ["set(attributes[\"service.name\"], \"circleci-job-wrapper\")"]
+  }
+  output { logs = [otelcol.processor.resourcedetection.default.input] }
+}
+
+// ---- 2. Host metrics (CPU, memory, disk, network, IO) ----
+prometheus.exporter.unix "host" {
+  // Optional: per-job "busy" gauges written by the wrapper (CCI_JOBLOG_PROM_DIR)
+  textfile { directory = "/run/circleci-job-wrapper/prom" }
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  scrape_interval = "15s"
+  forward_to      = [otelcol.receiver.prometheus.default.receiver]
+}
+
+otelcol.receiver.prometheus "default" {
+  output { metrics = [otelcol.processor.resourcedetection.default.input] }
+}
+
+// ---- 3. Tag everything with the EC2 identity (host.id = instance id) ----
+otelcol.processor.resourcedetection "default" {
+  detectors = ["ec2", "system"]
+  system { hostname_sources = ["os"] }
+  output {
+    logs    = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    logs    = [otelcol.exporter.otlphttp.default.input]
+    metrics = [otelcol.processor.transform.metrics.input]
+  }
+}
+
+// Put the EC2 instance id on every host metric so it joins with job events.
+otelcol.processor.transform "metrics" {
+  error_mode = "ignore"
+  metric_statements {
+    context    = "datapoint"
+    statements = ["set(attributes[\"instance_id\"], resource.attributes[\"host.id\"])"]
+  }
+  output { metrics = [otelcol.exporter.otlphttp.default.input] }
+}
+
+otelcol.auth.basic "default" {
+  username = sys.env("OTLP_USERNAME")
+  password = sys.env("OTLP_PASSWORD")
+}
+
+otelcol.exporter.otlphttp "default" {
+  client {
+    endpoint = sys.env("OTLP_ENDPOINT")
+    auth     = otelcol.auth.basic.default.handler
+  }
+}

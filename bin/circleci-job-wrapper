@@ -29,7 +29,7 @@ MAX_LINE_BYTES=3800
 NEG_CACHE_TTL=300
 
 # Keys that CCI_JOBLOG_EXTRA_FIELDS may not override.
-RESERVED_KEYS=" schema event ts job_id job_name job_number workflow_id pipeline_id pipeline_number project org branch sha build_url node_index pr_number hostname instance_id instance_type availability_zone region private_ip ami_id runner_name resource_class wrapper_pid agent_pid exit_code duration_ms status truncated state updated_at "
+RESERVED_KEYS=" schema event ts job_id job_name job_number workflow_id pipeline_id pipeline_number project org branch sha build_url node_index pr_number hostname instance_id instance_type availability_zone region private_ip ami_id runner_name resource_class wrapper_pid agent_pid agent_exit_code duration_ms agent_status org_id project_id truncated state updated_at "
 
 dbg() {
   if [[ -n ${CCI_JOBLOG_DEBUG:-} ]]; then
@@ -238,14 +238,15 @@ resolve_runner_and_class() {
   EXTRA_FIELDS=${CCI_JOBLOG_EXTRA_FIELDS:-}
 
   local conf=${CCI_JOBLOG_CONF:-/etc/circleci-job-wrapper/wrapper.env}
-  if [[ -z $RUNNER_NAME || -z $RESOURCE_CLASS || -z $EXTRA_FIELDS ]]; then
-    if kv_parse "$conf"; then
-      [[ -z $RUNNER_NAME ]] && RUNNER_NAME=${KV[CCI_RUNNER_NAME]:-}
-      [[ -z $RESOURCE_CLASS ]] && RESOURCE_CLASS=${KV[CCI_RESOURCE_CLASS]:-}
-      [[ -z $EXTRA_FIELDS ]] && EXTRA_FIELDS=${KV[CCI_JOBLOG_EXTRA_FIELDS]:-}
-    fi
-    KV=()
+  # The operator file supplies defaults; real environment variables win.
+  if kv_parse "$conf"; then
+    [[ -z $RUNNER_NAME ]] && RUNNER_NAME=${KV[CCI_RUNNER_NAME]:-}
+    [[ -z $RESOURCE_CLASS ]] && RESOURCE_CLASS=${KV[CCI_RESOURCE_CLASS]:-}
+    [[ -z $EXTRA_FIELDS ]] && EXTRA_FIELDS=${KV[CCI_JOBLOG_EXTRA_FIELDS]:-}
+    [[ -z ${CCI_JOBLOG_PROM_DIR:-} ]] && CCI_JOBLOG_PROM_DIR=${KV[CCI_JOBLOG_PROM_DIR]:-}
+    [[ -z ${CCI_JOBLOG_PROM_JOB_ID:-} ]] && CCI_JOBLOG_PROM_JOB_ID=${KV[CCI_JOBLOG_PROM_JOB_ID]:-}
   fi
+  KV=()
 
   if [[ -z $RUNNER_NAME ]]; then
     local cfg=${CCI_RUNNER_CONFIG:-}
@@ -447,6 +448,10 @@ build_common() {
   jadd project "$REPLY" 128
   first_env CIRCLE_PROJECT_USERNAME
   jadd org "$REPLY" 128
+  first_env CIRCLE_ORGANIZATION_ID
+  jadd org_id "$REPLY" 64
+  first_env CIRCLE_PROJECT_ID
+  jadd project_id "$REPLY" 64
   first_env CIRCLE_BRANCH
   jadd branch "$REPLY" 160
   first_env CIRCLE_SHA1
@@ -553,6 +558,60 @@ http_post() {
 }
 
 # ---------------------------------------------------------------------------
+# Optional Prometheus textfile (CCI_JOBLOG_PROM_DIR): a per-runner "busy" gauge
+# for node_exporter / Alloy's textfile collector. Live view of every runner.
+# ---------------------------------------------------------------------------
+
+# prom_escape VALUE: escape a Prometheus label value into REPLY.
+prom_escape() {
+  local v=$1
+  v=${v//\\/\\\\}
+  v=${v//\"/\\\"}
+  v=${v//$'\n'/\\n}
+  REPLY=${v:0:128}
+}
+
+# prom_write BUSY: atomically (re)write this runner's .prom file.
+prom_write() {
+  local dir=${CCI_JOBLOG_PROM_DIR:-} busy=$1 name labels tmp f
+  [[ -n $dir ]] || return 0
+  name=${STATE_FILE##*/}
+  name=${name%.json}
+  f="$dir/$name.prom"
+  tmp="$dir/.$name.prom.$$.tmp"
+  [[ -d $dir ]] || mkdir -p "$dir" 2>/dev/null
+  prom_escape "${RUNNER_NAME:-}"
+  labels="runner=\"$REPLY\""
+  prom_escape "${RESOURCE_CLASS:-}"
+  labels+=",resource_class=\"$REPLY\""
+  prom_escape "${HOST_instance_id:-}"
+  labels+=",instance_id=\"$REPLY\""
+  if ((busy)); then
+    prom_escape "${CIRCLE_JOB:-}"
+    labels+=",job_name=\"$REPLY\""
+    prom_escape "${CIRCLE_PROJECT_REPONAME:-}"
+    labels+=",project=\"$REPLY\""
+    if [[ ${CCI_JOBLOG_PROM_JOB_ID:-0} == 1 ]]; then
+      prom_escape "${CIRCLE_WORKFLOW_JOB_ID:-}"
+      labels+=",job_id=\"$REPLY\""
+    fi
+  fi
+  {
+    printf '# HELP circleci_runner_busy 1 while this runner agent runs a job.\n'
+    printf '# TYPE circleci_runner_busy gauge\n'
+    printf 'circleci_runner_busy{%s} %d\n' "$labels" "$busy"
+    if ((busy)); then
+      printf '# HELP circleci_runner_job_start_time_seconds Start time of the running job.\n'
+      printf '# TYPE circleci_runner_job_start_time_seconds gauge\n'
+      printf 'circleci_runner_job_start_time_seconds{%s} %d\n' "$labels" "$((START_MS / 1000))"
+    fi
+  } >"$tmp" 2>/dev/null || { rm -f "$tmp" 2>/dev/null; return 0; }
+  chmod 0644 "$tmp" 2>/dev/null
+  mv -f "$tmp" "$f" 2>/dev/null || rm -f "$tmp" 2>/dev/null
+  return 0
+}
+
+# ---------------------------------------------------------------------------
 # State file
 # ---------------------------------------------------------------------------
 
@@ -604,17 +663,19 @@ telemetry_start() {
   state_path
   emit job_start
   state_start
+  prom_write 1
 }
 
 telemetry_end() {
   local rc=$1 status=$2 dur=$((END_MS - START_MS))
   fmt_ts "$END_MS"
   FRAG=""
-  jaddn exit_code "$rc"
+  jaddn agent_exit_code "$rc"
   jaddn duration_ms "$dur"
-  jadd status "$status" 16
+  jadd agent_status "$status" 16
   emit job_end "$FRAG"
   state_end
+  prom_write 0
 }
 
 # run_quiet CMD...: run a telemetry phase with stdin from /dev/null and
@@ -718,11 +779,14 @@ main() {
 
   now_ms
   END_MS=$NOW_MS
-  local status=failed
+  # agent_status describes the task-agent process, not the job result: the
+  # agent exits 0 for failed jobs too. Take the job result from the CircleCI
+  # job span (com.circleci.job.status) or the API, joined on job_id.
+  local status=agent_error
   if ((SIG_COUNT > 0)); then
     status=cancelled
   elif ((rc == 0)); then
-    status=success
+    status=completed
   fi
   run_quiet telemetry_end "$rc" "$status"
   exit "$rc"

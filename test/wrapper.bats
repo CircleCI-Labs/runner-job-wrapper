@@ -21,11 +21,11 @@ teardown() { common_teardown; }
   [ "$status" -eq 1 ]
 }
 
-@test "exit status 137 (explicit) is passed through and logged as failed" {
+@test "exit status 137 (explicit) is passed through and logged as agent_error" {
   seed_cache
   FAKE_EXIT=137 run "$WRAPPER" "$AGENT"
   [ "$status" -eq 137 ]
-  run jq -e 'select(.event == "job_end") | .exit_code == 137 and .status == "failed"' "$CCI_JOBLOG_FILE"
+  run jq -e 'select(.event == "job_end") | .agent_exit_code == 137 and .agent_status == "agent_error"' "$CCI_JOBLOG_FILE"
   [ "$status" -eq 0 ]
 }
 
@@ -33,7 +33,7 @@ teardown() { common_teardown; }
   seed_cache
   FAKE_KILL9=1 run "$WRAPPER" "$AGENT"
   [ "$status" -eq 137 ]
-  run jq -e 'select(.event == "job_end") | .exit_code == 137 and .status == "failed"' "$CCI_JOBLOG_FILE"
+  run jq -e 'select(.event == "job_end") | .agent_exit_code == 137 and .agent_status == "agent_error"' "$CCI_JOBLOG_FILE"
   [ "$status" -eq 0 ]
 }
 
@@ -98,7 +98,7 @@ teardown() { common_teardown; }
          and .runner_name == "runner-a" and .resource_class == "ns/large"
          and (.hostname | length > 0)
          and (.wrapper_pid | type == "number") and (.agent_pid | type == "number"))
-    and (.[1].exit_code == 0 and .[1].status == "success" and (.[1].duration_ms | type == "number"))
+    and (.[1].agent_exit_code == 0 and .[1].agent_status == "completed" and (.[1].duration_ms | type == "number"))
     and (.[0] | has("exit_code") | not)
   ' "$CCI_JOBLOG_FILE"
   [ "$status" -eq 0 ]
@@ -162,7 +162,7 @@ teardown() { common_teardown; }
   local rc=0
   wait "$pid" || rc=$?
   [ "$rc" -eq 143 ]
-  run jq -e 'select(.event == "job_end") | .status == "cancelled" and .exit_code == 143' "$CCI_JOBLOG_FILE"
+  run jq -e 'select(.event == "job_end") | .agent_status == "cancelled" and .agent_exit_code == 143' "$CCI_JOBLOG_FILE"
   [ "$status" -eq 0 ]
   [ "$(wc -l <"$CCI_JOBLOG_FILE")" -eq 2 ]
 }
@@ -177,7 +177,7 @@ teardown() { common_teardown; }
   local rc=0
   wait "$pid" || rc=$?
   [ "$rc" -eq 130 ]
-  run jq -e 'select(.event == "job_end") | .status == "cancelled"' "$CCI_JOBLOG_FILE"
+  run jq -e 'select(.event == "job_end") | .agent_status == "cancelled"' "$CCI_JOBLOG_FILE"
   [ "$status" -eq 0 ]
 }
 
@@ -190,7 +190,7 @@ teardown() { common_teardown; }
   local rc=0
   wait "$pid" || rc=$?
   [ "$rc" -eq 129 ]
-  run jq -e 'select(.event == "job_end") | .status == "cancelled"' "$CCI_JOBLOG_FILE"
+  run jq -e 'select(.event == "job_end") | .agent_status == "cancelled"' "$CCI_JOBLOG_FILE"
   [ "$status" -eq 0 ]
 }
 
@@ -203,7 +203,7 @@ teardown() { common_teardown; }
   local rc=0
   wait "$pid" || rc=$?
   [ "$rc" -eq 143 ]
-  run jq -e 'select(.event == "job_end") | .status == "cancelled"' "$CCI_JOBLOG_FILE"
+  run jq -e 'select(.event == "job_end") | .agent_status == "cancelled"' "$CCI_JOBLOG_FILE"
   [ "$status" -eq 0 ]
   [ -z "$(ls -A "$CCI_JOBLOG_STATE_DIR")" ]
 }
@@ -584,4 +584,25 @@ YAML
   m=$(printf '%s\n' "${ts[@]}" | sort -n | sed -n 8p)
   echo "# median wrapper-launch to agent-ready: ${m} ms (includes 50 ms polling granularity)" >&3
   ((m < 150))
+}
+
+# --- prometheus textfile ---------------------------------------------------
+
+@test "prom textfile: busy=1 while running, busy=0 after, labels escaped" {
+  export CCI_JOBLOG_PROM_DIR="$BATS_TEST_TMPDIR/prom" CCI_RUNNER_NAME=r1 CIRCLE_JOB=$'we"ird\\job'
+  "$WRAPPER" sh -c 'sleep 0.4' &
+  sleep 0.25
+  run cat "$CCI_JOBLOG_PROM_DIR/r1.prom"
+  [[ $output == *'circleci_runner_busy{runner="r1"'*'job_name="we\"ird\\job"'*'} 1'* ]]
+  wait
+  run cat "$CCI_JOBLOG_PROM_DIR/r1.prom"
+  [[ $output == *'circleci_runner_busy{runner="r1",resource_class="'*'} 0'* ]]
+  [[ $output != *job_name* ]]
+}
+
+@test "prom textfile: operator file can enable it" {
+  printf 'CCI_JOBLOG_PROM_DIR=%s\n' "$BATS_TEST_TMPDIR/prom2" > "$BATS_TEST_TMPDIR/w.env"
+  CCI_JOBLOG_CONF="$BATS_TEST_TMPDIR/w.env" CCI_RUNNER_NAME=r2 run "$WRAPPER" true
+  [ "$status" -eq 0 ]
+  [ -f "$BATS_TEST_TMPDIR/prom2/r2.prom" ]
 }
